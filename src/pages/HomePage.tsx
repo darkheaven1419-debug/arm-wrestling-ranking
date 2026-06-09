@@ -25,7 +25,7 @@ export function HomePage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full
               bg-brand-500/10 border border-brand-500/20 text-brand-400 text-sm mb-8">
               <Dumbbell className="w-4 h-4" />
-              北京腕力运动社区
+              北京腕力 夺冠摘金
             </div>
           </motion.div>
 

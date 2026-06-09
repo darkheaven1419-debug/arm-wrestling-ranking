@@ -10,6 +10,9 @@ export function Footer() {
         <p className="text-stone-600 text-xs mt-2">
           非营利性社区网站，数据由用户提交并经管理员审核后发布
         </p>
+        <p className="text-stone-600 text-xs mt-1">
+          开发人：张梓桐
+        </p>
       </div>
     </footer>
   );
