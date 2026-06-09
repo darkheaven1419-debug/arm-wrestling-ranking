@@ -272,7 +272,7 @@ export function AdminPage() {
                             <button onClick={() => setEditingScore({ id: a.id, score: String(a.rank_score) })} className="p-1.5 rounded-lg bg-white/5 text-stone-500 hover:text-white transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
                           </>
                         )}
-                        <button onClick={() => updateStatus.mutate({ id: a.id, status: 'pending' })} className="text-xs text-stone-600 hover:text-stone-400 transition-colors">撤销</button>
+                        <a href={`#/submit?edit=${a.id}`} className="text-xs text-blue-400 hover:text-blue-300 transition-colors mr-3">✏️ 编辑</a><button onClick={() => updateStatus.mutate({ id: a.id, status: 'pending' })} className="text-xs text-stone-600 hover:text-stone-400 transition-colors">撤销</button>
                       </div>
                     </div>
                   ))}

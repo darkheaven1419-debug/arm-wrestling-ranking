@@ -17,6 +17,7 @@ export function SubmitPage() {
   const [form, setForm] = useState<AthleteFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
 
@@ -31,6 +32,14 @@ export function SubmitPage() {
         if (p?.training_spot) setForm(f => ({ ...f, training_spot: p.training_spot || '' }));
       });
     });
+    // Load existing athlete for editing
+    const editId = q.get('edit');
+    if (editId) { setEditingId(parseInt(editId)); supabase.from('athletes').select('*').eq('id', editId).single().then(({ data: a }) => {
+      if (a) {
+        setForm({ name: a.name || '', codename: a.codename || '', gender: a.gender || '男', hand: a.hand || '右手', weight_class: a.weight_class || '78kg', city: a.city || '朝阳区', training_spot: a.training_spot || '', achievements: a.achievements || '', bio: a.bio || '', contact: a.contact || '' });
+        if (a.avatar_url) setAvatarPreview(a.avatar_url);
+      }
+    }); }
   }, [loc]);
 
   const updateField = <K extends keyof AthleteFormData>(key: K, value: AthleteFormData[K]) => {
@@ -53,21 +62,23 @@ export function SubmitPage() {
         avatarUrl = publicUrl;
       } catch (e) { console.error('Photo upload failed:', e); }
     }
-    const { error } = await supabase.from('athletes').insert({
+    const payload = {
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
-      hand: form.hand,
-      weight_class: form.weight_class,
-      avatar_url: avatarUrl, city: form.city, training_spot: form.training_spot.trim() || null,
+      hand: form.hand, weight_class: form.weight_class,
+      avatar_url: avatarUrl || (editingId ? avatarPreview : null), city: form.city,
+      training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
-      bio: form.bio.trim() || null,
-      contact: form.contact.trim() || null,
+      bio: form.bio.trim() || null, contact: form.contact.trim() || null,
       status: 'pending',
-    });
+    };
+    const { error } = editingId
+      ? await supabase.from('athletes').update(payload).eq('id', editingId)
+      : await supabase.from('athletes').insert(payload);
     setIsSubmitting(false);
 
     if (error) { toast.error('提交失败：' + error.message); setIsSubmitting(false); return; }
     setIsSuccess(true);
-    toast.success('提交成功！待管理员审核后即可上榜');
+    toast.success(editingId ? '修改已提交，待重新审核' : '提交成功！待管理员审核后即可上榜');
   };
 
   if (isSuccess) {

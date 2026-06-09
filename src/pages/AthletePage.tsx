@@ -44,7 +44,7 @@ export function AthletePage() {
         {athlete.training_spot && <div className="glass rounded-2xl p-4 mb-4"><p className="text-sm text-stone-400"><span className="text-stone-500">🏠 常去集训点：</span>{athlete.training_spot}</p></div>}
         {athlete.achievements && <div className="mb-4"><h3 className="text-sm font-semibold text-stone-400 mb-2 flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-400" />比赛成绩</h3><p className="text-white text-sm leading-relaxed">{athlete.achievements}</p></div>}
         {athlete.bio && <div className="mb-4"><h3 className="text-sm font-semibold text-stone-400 mb-2">个人简介</h3><p className="text-white text-sm leading-relaxed">{athlete.bio}</p></div>}
-        <div className="flex items-center gap-4 text-xs text-stone-600 mt-6 pt-6 border-t border-white/5"><span>性别：{athlete.gender}</span><span>加入：{new Date(athlete.created_at).toLocaleDateString('zh-CN')}</span></div>
+        <div className="flex items-center justify-between gap-4 text-xs text-stone-600 mt-6 pt-6 border-t border-white/5"><div><span>性别：{athlete.gender}</span><span className="ml-4">加入：{new Date(athlete.created_at).toLocaleDateString('zh-CN')}</span></div><a href={`#/submit?edit=${athlete.id}`} className="text-brand-400 hover:text-brand-300 font-medium">✏️ 编辑</a></div>
       </motion.div>
     </div></div>
   );
