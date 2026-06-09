@@ -90,23 +90,20 @@ export function SubmitPage() {
                 <option value="男">男</option><option value="女">女</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>体重级别 *</label>
               <select value={form.weight_class} onChange={(e) => updateField('weight_class', e.target.value as WeightClass)} className={selectClass}>
                 {WEIGHT_CLASSES.map((wc) => (<option key={wc.value} value={wc.value}>{wc.icon} {wc.label}</option>))}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>体重 (kg)</label>
               <input type="number" step="0.1" value={form.body_weight} onChange={(e) => updateField('body_weight', e.target.value)}
                 className={inputClass} placeholder="例: 75.5" />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>所在区</label>
               <select value={form.city} onChange={(e) => updateField('city', e.target.value)} className={selectClass}>
