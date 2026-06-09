@@ -4,7 +4,7 @@ import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell }
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import type { Announcement } from '@/types';
+import type { Announcement, Athlete } from '@/types';
 
 const GRADIENTS = [
   'from-amber-500/20 via-orange-500/10 to-transparent',
@@ -20,6 +20,10 @@ export function HomePage() {
   const { data: athleteCount } = useQuery({
     queryKey: ['athlete-count'],
     queryFn: async () => { const { count } = await supabase.from('athletes').select('*', { count: 'exact', head: true }).eq('status', 'approved'); return count ?? 0; }
+  });
+  const { data: featuredAthletes } = useQuery({
+    queryKey: ['featured-athletes'],
+    queryFn: async () => { const { data } = await supabase.from('athletes').select('*').eq('status', 'approved').order('rank_score', { ascending: false }).limit(6); return data as Athlete[]; }
   });
   const { data: announcements } = useQuery({
     queryKey: ['announcements'],
@@ -92,6 +96,23 @@ export function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Featured Athletes */}
+      {featuredAthletes && featuredAthletes.length > 0 && (
+        <section className="relative max-w-6xl mx-auto px-4 pb-16">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 justify-center"><Trophy className="w-5 h-5 text-amber-400" />优秀运动员</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {featuredAthletes.slice(0, 6).map(a => (
+              <motion.a key={a.id} href={`#/athlete/${a.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-4 text-center hover:scale-105 transition-all cursor-pointer block">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/20 to-violet-500/10 flex items-center justify-center mx-auto mb-3 border border-brand-500/20"><Trophy className="w-5 h-5 text-brand-400" /></div>
+                <p className="text-white text-sm font-bold truncate">{a.name}</p>
+                {a.codename && <p className="text-brand-400 text-xs truncate">{a.codename}</p>}
+                <p className="text-stone-500 text-xs mt-1">{a.weight_class}</p>
+              </motion.a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Announcements */}
       {announcements && announcements.length > 0 && (

@@ -7,6 +7,7 @@ import { AdminPage } from '@/pages/AdminPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { TrainingPage } from '@/pages/TrainingPage';
+import { AthletePage } from '@/pages/AthletePage';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/ranking/:weightClass" element={<RankingPage />} />
+        <Route path="/athlete/:athleteId" element={<AthletePage />} />
         <Route path="/submit" element={<SubmitPage />} />
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/admin" element={<AdminPage />} />

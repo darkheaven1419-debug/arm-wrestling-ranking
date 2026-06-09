@@ -96,7 +96,8 @@ export function RankingPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className={`glass rounded-2xl p-5 flex items-center gap-4
+                onClick={() => window.location.hash = `/athlete/${athlete.id}`}
+                className={`glass rounded-2xl p-5 flex items-center gap-4 cursor-pointer
                   hover:bg-white/[0.06] transition-colors
                   ${index < 3 ? 'border-brand-500/20' : ''}`}
               >
