@@ -310,8 +310,8 @@ export function AdminPage() {
 }
 
 function NotAdminView({ myApp, applyAdmin, handleLogout }: {
-  myApp: { status: string } | null;
-  applyAdmin: ReturnType<typeof useMutation>;
+  myApp: { status: string } | null | undefined;
+  applyAdmin: { mutate: () => void; isPending: boolean };
   handleLogout: () => void;
 }) {
   const [adminCode, setAdminCode] = useState('');
@@ -343,7 +343,7 @@ function NotAdminView({ myApp, applyAdmin, handleLogout }: {
           <>
             <p className="text-red-400 mb-2">申请已被拒绝</p>
             <p className="text-stone-500 mb-4">你可以重新提交或输入管理员密码直接激活。</p>
-            <button onClick={() => applyAdmin.mutate()} disabled={applyAdmin.isPending}
+            <button onClick={() => (applyAdmin as any).mutate()} disabled={applyAdmin.isPending}
               className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10 transition-all duration-300 disabled:opacity-50 mb-4">
               {applyAdmin.isPending ? '提交中...' : '重新申请审核'}
             </button>
@@ -372,7 +372,7 @@ function NotAdminView({ myApp, applyAdmin, handleLogout }: {
               </button>
             </div>
             <div className="text-stone-600 text-xs mb-6">— 或 —</div>
-            <button onClick={() => applyAdmin.mutate()} disabled={applyAdmin.isPending}
+            <button onClick={() => (applyAdmin as any).mutate()} disabled={applyAdmin.isPending}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10 transition-all disabled:opacity-50">
               <Send className="w-4 h-4" />
               {applyAdmin.isPending ? '提交中...' : '提交申请等审核'}
