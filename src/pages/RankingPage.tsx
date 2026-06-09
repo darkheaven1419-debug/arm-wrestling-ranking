@@ -79,7 +79,7 @@ export function RankingPage() {
               该级别还没有审核通过的运动员，快来提交你的信息吧！
             </p>
             <Link
-              to="/submit"
+              to={`/submit?hand=${hand}&class=${weightClass}`}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl
                 bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold
                 hover:from-brand-400 hover:to-brand-500 transition-all duration-300"
@@ -147,6 +147,12 @@ export function RankingPage() {
             ))}
           </motion.div>
         )}
+        <div className="text-center mt-8">
+          <Link to={`/submit?hand=${hand}&class=${weightClass}`}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">
+            提交你的运动员信息
+          </Link>
+        </div>
       </div>
     </div>
   );
