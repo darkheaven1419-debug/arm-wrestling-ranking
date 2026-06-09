@@ -27,12 +27,24 @@ export function LoginPage() {
     e.preventDefault();
     if (!email.trim()) { toast.error('请输入邮箱'); return; }
     setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: 'https://darkheaven1419-debug.github.io/arm-wrestling-ranking/#/login',
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: 'https://darkheaven1419-debug.github.io/arm-wrestling-ranking/#/login',
+      });
+      setIsLoading(false);
+      if (error) {
+        if (error.message.includes('rate limit')) {
+          toast('邮件发送太频繁，请稍后再试。或联系管理员手动重置密码。', { icon: '⚠️', duration: 6000 });
+        } else {
+          toast.error('发送失败：' + error.message);
+        }
+        return;
+      }
+      toast.success('重置邮件已发送，请检查邮箱（可能在垃圾箱）');
+    } catch {
+      toast('邮件服务暂时不可用，请联系管理员重置密码', { icon: '⚠️', duration: 5000 });
+    }
     setIsLoading(false);
-    if (error) { toast.error('发送失败：' + error.message); return; }
-    toast.success('重置邮件已发送，请检查邮箱');
     setMode('login'); setPassword(''); setConfirmPassword('');
   };
 
