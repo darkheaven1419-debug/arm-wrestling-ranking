@@ -14,3 +14,13 @@ CREATE POLICY "Users can read own applications" ON admin_applications FOR SELECT
 CREATE POLICY "Admins can read all applications" ON admin_applications FOR SELECT USING (EXISTS (SELECT 1 FROM admin_users WHERE user_id = auth.uid()));
 CREATE POLICY "Super admins can update applications" ON admin_applications FOR UPDATE USING (EXISTS (SELECT 1 FROM admin_users WHERE user_id = auth.uid() AND role = 'super_admin'));
 CREATE POLICY "Users can delete own rejected" ON admin_applications FOR DELETE USING (auth.uid() = user_id AND status = 'rejected');
+
+CREATE OR REPLACE FUNCTION approve_admin_by_code(code TEXT)
+RETURNS TEXT AS $$
+BEGIN
+  IF code <> 'arm123123' THEN RETURN 'error: 密码错误'; END IF;
+  INSERT INTO admin_users (user_id, role) VALUES (auth.uid(), 'admin')
+    ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
+  RETURN 'ok';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

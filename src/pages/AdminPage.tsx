@@ -162,39 +162,7 @@ export function AdminPage() {
   }
 
   if (!isAdmin) {
-    return (
-      <div className="pt-24 pb-20 px-4">
-        <div className="max-w-sm mx-auto text-center">
-          <Shield className="w-16 h-16 text-stone-700 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">管理后台</h1>
-          {myApp?.status === 'pending' ? (
-            <>
-              <p className="text-amber-400 mb-2">⏳ 申请审核中</p>
-              <p className="text-stone-500 mb-6">你的管理员申请已提交，请等待超级管理员审核。</p>
-            </>
-          ) : myApp?.status === 'rejected' ? (
-            <>
-              <p className="text-red-400 mb-2">申请已被拒绝</p>
-              <p className="text-stone-500 mb-6">你可以重新提交申请。</p>
-              <button onClick={() => applyAdmin.mutate()} disabled={applyAdmin.isPending}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all duration-300 disabled:opacity-50">
-                {applyAdmin.isPending ? '提交中...' : '重新申请'}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-stone-500 mb-6">你没有管理员权限。点击下方申请成为管理员，由超级管理员审核。</p>
-              <button onClick={() => applyAdmin.mutate()} disabled={applyAdmin.isPending}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all duration-300 disabled:opacity-50 shadow-lg shadow-brand-500/25">
-                <Send className="w-4 h-4" />
-                {applyAdmin.isPending ? '提交中...' : '申请成为管理员'}
-              </button>
-            </>
-          )}
-          <button onClick={handleLogout} className="block mx-auto mt-6 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10 transition-colors">退出登录</button>
-        </div>
-      </div>
-    );
+    return <NotAdminView myApp={myApp} applyAdmin={applyAdmin} handleLogout={handleLogout} />;
   }
 
   const pending = athletes?.filter((a) => a.status === 'pending') ?? [];
@@ -336,6 +304,82 @@ export function AdminPage() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function NotAdminView({ myApp, applyAdmin, handleLogout }: {
+  myApp: { status: string } | null;
+  applyAdmin: ReturnType<typeof useMutation>;
+  handleLogout: () => void;
+}) {
+  const [adminCode, setAdminCode] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+
+  const tryCode = async () => {
+    if (!adminCode.trim()) { toast.error('请输入管理员密码'); return; }
+    setIsChecking(true);
+    const { data, error } = await supabase.rpc('approve_admin_by_code', { code: adminCode.trim() });
+    setIsChecking(false);
+    if (error) { toast.error('验证失败'); return; }
+    if (data?.startsWith('error:')) { toast.error(data.replace('error: ', '')); return; }
+    toast.success('已成为管理员！刷新页面生效');
+    window.location.reload();
+  };
+
+  return (
+    <div className="pt-24 pb-20 px-4">
+      <div className="max-w-sm mx-auto text-center">
+        <Shield className="w-16 h-16 text-stone-700 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold text-white mb-2">管理后台</h1>
+
+        {myApp?.status === 'pending' ? (
+          <>
+            <p className="text-amber-400 mb-2">⏳ 申请审核中</p>
+            <p className="text-stone-500 mb-6">你的管理员申请已提交，请等待超级管理员审核。</p>
+          </>
+        ) : myApp?.status === 'rejected' ? (
+          <>
+            <p className="text-red-400 mb-2">申请已被拒绝</p>
+            <p className="text-stone-500 mb-4">你可以重新提交或输入管理员密码直接激活。</p>
+            <button onClick={() => applyAdmin.mutate()} disabled={applyAdmin.isPending}
+              className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10 transition-all duration-300 disabled:opacity-50 mb-4">
+              {applyAdmin.isPending ? '提交中...' : '重新申请审核'}
+            </button>
+            {/* password field for rejected users too */}
+            <div className="glass rounded-2xl p-5 mt-4">
+              <p className="text-sm text-stone-400 mb-3">或输入管理员密码直接激活</p>
+              <input type="password" value={adminCode} onChange={e => setAdminCode(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-center text-lg tracking-widest placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all mb-3"
+                placeholder="••••••••" />
+              <button onClick={tryCode} disabled={isChecking}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">
+                {isChecking ? '验证中...' : '激活管理员'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-stone-400 mb-3">输入管理员密码即可直接成为管理员</p>
+            <div className="glass rounded-2xl p-5 mb-4">
+              <input type="password" value={adminCode} onChange={e => setAdminCode(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-center text-lg tracking-widest placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all mb-3"
+                placeholder="••••••••" />
+              <button onClick={tryCode} disabled={isChecking}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">
+                {isChecking ? '验证中...' : '激活管理员'}
+              </button>
+            </div>
+            <div className="text-stone-600 text-xs mb-6">— 或 —</div>
+            <button onClick={() => applyAdmin.mutate()} disabled={applyAdmin.isPending}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10 transition-all disabled:opacity-50">
+              <Send className="w-4 h-4" />
+              {applyAdmin.isPending ? '提交中...' : '提交申请等审核'}
+            </button>
+          </>
+        )}
+        <button onClick={handleLogout} className="block mx-auto mt-6 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10 transition-colors">退出登录</button>
       </div>
     </div>
   );
