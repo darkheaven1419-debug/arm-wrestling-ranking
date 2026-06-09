@@ -51,7 +51,7 @@ export function LoginPage() {
           <button onClick={() => setMode('register')} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${mode === 'register' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}><UserPlus className="w-4 h-4 inline mr-1.5" />注册</button>
         </div>
         <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-4">
-          <div><label className="block text-sm text-stone-400 mb-1.5">邮箱</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={c} placeholder="your@email.com" required /></div>
+          <div><label className="block text-sm text-stone-400 mb-1.5">账号</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={c} placeholder="输入邮箱地址" required /></div>
           <div><label className="block text-sm text-stone-400 mb-1.5">密码</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={c} placeholder="••••••••" required /></div>
           {mode === 'register' && <div><label className="block text-sm text-stone-400 mb-1.5">确认密码</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={c} placeholder="再次输入密码" required /></div>}
           <button type="submit" disabled={isLoading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
