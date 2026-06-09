@@ -65,7 +65,7 @@ export function SubmitPage() {
     });
     setIsSubmitting(false);
 
-    if (error) { toast.error('提交失败，请稍后重试'); return; }
+    if (error) { toast.error('提交失败：' + error.message); setIsSubmitting(false); return; }
     setIsSuccess(true);
     toast.success('提交成功！待管理员审核后即可上榜');
   };
