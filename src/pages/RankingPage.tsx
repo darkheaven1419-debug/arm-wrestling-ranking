@@ -116,9 +116,12 @@ export function RankingPage() {
                     {athlete.name}
                   </h3>
                   <div className="flex items-center gap-3 text-sm text-stone-500 mt-0.5 flex-wrap">
-                    {athlete.team && (
+                    {athlete.codename && (
+                      <span className="text-brand-400 font-semibold">{athlete.codename}</span>
+                    )}
+                    {athlete.training_spot && (
                       <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" /> {athlete.team}
+                        🏠 {athlete.training_spot}
                       </span>
                     )}
                     <span className="flex items-center gap-1">

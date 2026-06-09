@@ -6,6 +6,7 @@ import { SubmitPage } from '@/pages/SubmitPage';
 import { AdminPage } from '@/pages/AdminPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
+import { TrainingPage } from '@/pages/TrainingPage';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/ranking/:hand/:weightClass" element={<RankingPage />} />
         <Route path="/submit" element={<SubmitPage />} />
+        <Route path="/training" element={<TrainingPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/profile" element={<ProfilePage />} />

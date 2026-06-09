@@ -1,12 +1,13 @@
 export interface Athlete {
   id: number;
   name: string;
+  codename: string | null;
   gender: string;
   hand: '左手' | '右手';
   weight_class: WeightClass;
   body_weight: number | null;
   city: string;
-  team: string | null;
+  training_spot: string | null;
   achievements: string | null;
   bio: string | null;
   contact: string | null;
@@ -22,13 +23,24 @@ export type Hand = '左手' | '右手';
 
 export interface AthleteFormData {
   name: string;
+  codename: string;
   gender: string;
   hand: Hand;
   weight_class: WeightClass;
   body_weight: string;
   city: string;
-  team: string;
+  training_spot: string;
   achievements: string;
   bio: string;
   contact: string;
+}
+
+export interface TrainingLocation {
+  id: number;
+  name: string;
+  address: string | null;
+  image_url: string | null;
+  contact_person: string | null;
+  description: string | null;
+  created_at: string;
 }

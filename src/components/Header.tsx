@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Dumbbell, Menu, X, PlusCircle, UserCog, UserCircle } from 'lucide-react';
+import { Dumbbell, Menu, X, PlusCircle, UserCog, UserCircle, MapPin } from 'lucide-react';
 import { SITE_NAME } from '@/lib/constants';
 
 const NAV_LINKS = [
   { to: '/', label: '首页' },
-  { to: '/submit', label: '提交信息', icon: PlusCircle },
+  { to: '/submit', label: '提交', icon: PlusCircle },
+  { to: '/training', label: '集训', icon: MapPin },
   { to: '/profile', label: '个人', icon: UserCircle },
   { to: '/admin', label: '管理', icon: UserCog },
 ];

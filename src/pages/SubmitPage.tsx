@@ -9,7 +9,7 @@ import type { Hand, WeightClass, AthleteFormData } from '@/types';
 
 const INITIAL_FORM: AthleteFormData = {
   name: '', gender: '男', hand: '右手', weight_class: '78kg',
-  body_weight: '', city: '朝阳区', team: '', achievements: '', bio: '', contact: '',
+  body_weight: '', city: '朝阳区', codename: '', training_spot: '', achievements: '', bio: '', contact: '',
 };
 
 export function SubmitPage() {
@@ -30,7 +30,7 @@ export function SubmitPage() {
       name: form.name.trim(), gender: form.gender, hand: form.hand,
       weight_class: form.weight_class,
       body_weight: form.body_weight ? parseFloat(form.body_weight) : null,
-      city: form.city, team: form.team.trim() || null,
+      city: form.city, codename: form.codename.trim() || null, training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
       bio: form.bio.trim() || null,
       contact: form.contact.trim() || null,
@@ -120,10 +120,16 @@ export function SubmitPage() {
               </select>
             </div>
             <div>
-              <label className={labelClass}>战队/俱乐部</label>
-              <input type="text" value={form.team} onChange={(e) => updateField('team', e.target.value)}
-                className={inputClass} placeholder="选填" />
+              <label className={labelClass}>代号</label>
+              <input type="text" value={form.codename} onChange={(e) => updateField('codename', e.target.value)}
+                className={inputClass} placeholder="如：铁腕王（选填）" />
             </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>常去的集训地点</label>
+            <input type="text" value={form.training_spot} onChange={(e) => updateField('training_spot', e.target.value)}
+              className={inputClass} placeholder="如：朝阳区铁腕训练馆（选填）" />
           </div>
 
           <div>
