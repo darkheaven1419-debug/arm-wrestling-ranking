@@ -30,7 +30,12 @@ export function TrainingPage() {
     setImageFile(f); setImagePreview(URL.createObjectURL(f));
   };
 
-  useEffect(() => { supabase.auth.getSession().then(async ({ data: { session } }) => { if (session) { const { data } = await supabase.from('admin_users').select('role').eq('user_id', session.user.id).maybeSingle(); setIsAdmin(!!data); } }); }, []);
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      try { const { data } = await supabase.from('admin_users').select('role').eq('user_id', session.user.id).maybeSingle(); setIsAdmin(!!data); } catch { setIsAdmin(false); }
+    });
+  }, []);
 
   const { data: locations, isLoading } = useQuery({
     queryKey: ['training-locations', isAdmin],
