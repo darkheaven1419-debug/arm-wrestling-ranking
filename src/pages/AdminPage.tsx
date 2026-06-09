@@ -136,18 +136,12 @@ export function AdminPage() {
   const [pwEmail, setPwEmail] = useState('');
   const resetPassword = async () => {
     if (!pwEmail.trim()) { toast.error('请输入邮箱'); return; }
-    const res = await fetch('https://dqsodgwpxiklpyohwqhg.supabase.co/auth/v1/admin/users', {
-      headers: { apikey: supabase.supabaseKey, Authorization: 'Bearer ' + supabase.supabaseKey, 'Content-Type': 'application/json' }
+    const { data, error } = await supabase.rpc('admin_reset_password', {
+      target_email: pwEmail.trim().toLowerCase(),
+      new_password: 'wrist123456'
     });
-    const list = await res.json();
-    const target = (list.users || []).find((u: any) => u.email === pwEmail.trim().toLowerCase());
-    if (!target) { toast.error('未找到该用户'); return; }
-    await fetch(`https://dqsodgwpxiklpyohwqhg.supabase.co/auth/v1/admin/users/${target.id}`, {
-      method: 'PUT',
-      headers: { apikey: supabase.supabaseKey, Authorization: 'Bearer ' + supabase.supabaseKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'wrist123456' }),
-    });
-    toast.success(`密码已重置为 wrist123456，请通知用户：${pwEmail.trim()}`); setPwEmail('');
+    if (error || data?.startsWith('error:')) { toast.error(data?.replace('error: ', '') || '重置失败'); return; }
+    toast.success('密码已重置为 wrist123456'); setPwEmail('');
   };
 
   const addAnnouncement = useMutation({
