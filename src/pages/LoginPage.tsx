@@ -16,9 +16,9 @@ export function LoginPage() {
     e.preventDefault();
     if (!email.trim() || !password) { toast.error('请填写邮箱和密码'); return; }
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     setIsLoading(false);
-    if (error) { toast.error('登录失败，请检查邮箱和密码'); return; }
+    if (error) { toast.error('登录失败：' + (error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message)); return; }
     toast.success('登录成功');
     navigate('/profile');
   };
@@ -42,11 +42,13 @@ export function LoginPage() {
     if (password.length < 6) { toast.error('密码至少 6 位'); return; }
     if (password !== confirmPassword) { toast.error('两次密码不一致'); return; }
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password });
+    if (error) { setIsLoading(false); toast.error('注册失败：' + error.message); return; }
+    if (data.session) { setIsLoading(false); toast.success('注册成功！'); navigate('/profile'); return; }
+    const { error: loginErr } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     setIsLoading(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success('注册成功！请完善个人资料');
-    navigate('/profile');
+    if (loginErr) { toast.success('注册成功，请登录'); setMode('login'); setPassword(''); return; }
+    toast.success('注册成功！'); navigate('/profile');
   };
 
   const c = "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/10 transition-all";
