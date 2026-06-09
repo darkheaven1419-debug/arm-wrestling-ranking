@@ -178,7 +178,7 @@ export function AdminPage() {
             <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-300 transition-colors mb-2"><ArrowLeft className="w-4 h-4" />返回首页</Link>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-white">管理后台</h1>
-              {isSuperAdmin && <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-400 text-xs font-semibold"><Crown className="w-3 h-3" />超级管理员</span>}
+              {isSuperAdmin && <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-400 text-xs font-semibold"><Crown className="w-3 h-3" />负责人</span>}
               {!isSuperAdmin && <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">🛡️ 管理员</span>}
             </div>
           </div>
@@ -296,7 +296,7 @@ export function AdminPage() {
             <div className="space-y-2">
               {adminUsers?.map(admin => (
                 <div key={admin.id} className="glass rounded-xl px-5 py-3 flex items-center justify-between">
-                  <span className="text-white text-sm">{admin.role === 'super_admin' ? '👑 超级管理员' : '🛡️ 管理员'}</span>
+                  <span className="text-white text-sm">{admin.role === 'super_admin' ? '👑 负责人' : '🛡️ 管理员'}</span>
                   {admin.role !== 'super_admin' && <button onClick={() => removeAdmin.mutate(admin.id)} disabled={removeAdmin.isPending} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"><Trash2 className="w-3 h-3" />移除</button>}
                 </div>
               ))}
@@ -337,7 +337,7 @@ function NotAdminView({ myApp, applyAdmin, handleLogout }: {
         {myApp?.status === 'pending' ? (
           <>
             <p className="text-amber-400 mb-2">⏳ 申请审核中</p>
-            <p className="text-stone-500 mb-6">你的管理员申请已提交，请等待超级管理员审核。</p>
+            <p className="text-stone-500 mb-6">你的管理员申请已提交，请等待负责人审核。</p>
           </>
         ) : myApp?.status === 'rejected' ? (
           <>
