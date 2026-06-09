@@ -10,6 +10,7 @@ export interface Athlete {
   training_spot: string | null;
   achievements: string | null;
   bio: string | null;
+  avatar_url: string | null;
   contact: string | null;
   status: 'pending' | 'approved' | 'rejected';
   rank_score: number;

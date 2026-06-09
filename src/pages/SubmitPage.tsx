@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, AlertCircle, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES, CITIES } from '@/lib/constants';
@@ -16,6 +16,8 @@ export function SubmitPage() {
   const [form, setForm] = useState<AthleteFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
 
   const updateField = <K extends keyof AthleteFormData>(key: K, value: AthleteFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -26,11 +28,19 @@ export function SubmitPage() {
     if (!form.name.trim()) { toast.error('请填写姓名'); return; }
 
     setIsSubmitting(true);
+    let avatarUrl = null;
+    if (avatarFile) {
+      const ext = avatarFile.name.split('.').pop();
+      const path = `athletes/${Date.now()}.${ext}`;
+      await supabase.storage.from('training-images').upload(path, avatarFile);
+      const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
+      avatarUrl = publicUrl;
+    }
     const { error } = await supabase.from('athletes').insert({
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
       weight_class: form.weight_class,
       body_weight: form.body_weight ? parseFloat(form.body_weight) : null,
-      city: form.city, training_spot: form.training_spot.trim() || null,
+      avatar_url: avatarUrl, city: form.city, training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
       bio: form.bio.trim() || null,
       contact: form.contact.trim() || null,
@@ -77,6 +87,14 @@ export function SubmitPage() {
         <p className="text-stone-500 mb-8">填写以下信息，提交后由管理员审核。审核通过即可上榜。</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className={labelClass}>🖼️ 照片（选填）</label>
+            {avatarPreview ? (
+              <div className="relative inline-block"><img src={avatarPreview} alt="预览" className="w-24 h-24 rounded-2xl object-cover border-2 border-brand-500/30" /><button type="button" onClick={() => { setAvatarFile(null); setAvatarPreview(''); }} className="absolute -top-1 -right-1 p-1 rounded-full bg-red-500 text-white"><span className="text-xs">✕</span></button></div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 w-24 h-24 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500"><Upload className="w-5 h-5" /><input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)); } }} className="hidden" /></label>
+            )}
+          </div>
           <div>
             <label className={labelClass}>姓名 *</label>
             <input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)}

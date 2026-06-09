@@ -24,7 +24,9 @@ export function AthletePage() {
       <Link to={`/ranking/${athlete.weight_class}`} className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-300 mb-8"><ArrowLeft className="w-4 h-4" />返回 {athlete.weight_class} 排名</Link>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-3xl p-8">
         <div className="flex items-start gap-6 mb-8 flex-wrap">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-500/30 to-violet-500/20 flex items-center justify-center shrink-0 border border-brand-500/30"><User className="w-10 h-10 text-brand-400" /></div>
+          <div className="w-20 h-20 rounded-2xl shrink-0 overflow-hidden border-2 border-brand-500/30">
+            {athlete.avatar_url ? <img src={athlete.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 flex items-center justify-center"><User className="w-10 h-10 text-brand-400" /></div>}
+          </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap mb-2">
               <h1 className="text-3xl font-black text-white">{athlete.name}</h1>
