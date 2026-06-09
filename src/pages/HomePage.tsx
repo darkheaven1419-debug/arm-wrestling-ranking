@@ -4,7 +4,8 @@ import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell }
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import type { Announcement, Athlete } from '@/types';
+import type { Announcement, Athlete, Hand } from '@/types';
+import { useState } from 'react';
 
 const GRADIENTS = [
   'from-amber-500/20 via-orange-500/10 to-transparent',
@@ -17,6 +18,7 @@ const GRADIENTS = [
 ];
 
 export function HomePage() {
+  const [selectedHand, setSelectedHand] = useState<Hand>('右手');
   const { data: athleteCount } = useQuery({
     queryKey: ['athlete-count'],
     queryFn: async () => { const { count } = await supabase.from('athletes').select('*', { count: 'exact', head: true }).eq('status', 'approved'); return count ?? 0; }
@@ -80,17 +82,27 @@ export function HomePage() {
       <section className="relative max-w-6xl mx-auto px-4 pb-16">
         <motion.div className="text-center mb-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
           <h2 className="text-2xl font-bold text-white mb-3 flex items-center justify-center gap-2"><TrendingUp className="w-6 h-6 text-brand-400" />选择级别查看排名</h2>
+          <div className="flex justify-center mb-6">
+            <div className="glass rounded-2xl p-1.5 flex gap-1">
+              {(['左手', '右手'] as Hand[]).map(hand => (
+                <button key={hand} onClick={() => setSelectedHand(hand)}
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${selectedHand === hand ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>
+                  {hand === '左手' ? '🤚' : '✋'} {hand}
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {WEIGHT_CLASSES.map((wc, i) => (
             <motion.div key={wc.value} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.06 * i }}>
-              <Link to={`/ranking/${wc.value}`}
+              <Link to={`/ranking/${selectedHand}/${wc.value}`}
                 className={`group relative block glass rounded-2xl p-6 text-center overflow-hidden hover:scale-[1.04] transition-all duration-300 hover:shadow-2xl border border-transparent hover:border-brand-500/20`}>
                 <div className={`absolute inset-0 bg-gradient-to-b ${GRADIENTS[i]} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
                 <div className="relative z-10">
                   <span className="text-5xl mb-3 block group-hover:scale-110 transition-transform duration-300">{wc.icon}</span>
                   <h3 className="text-xl font-extrabold text-white mb-1 group-hover:text-brand-300 transition-colors">{wc.label}</h3>
-                  <p className="text-xs text-stone-500">查看排名</p>
+                  <p className="text-xs text-stone-500">{selectedHand} · 查看排名</p>
                 </div>
               </Link>
             </motion.div>

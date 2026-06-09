@@ -1,23 +1,30 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Send, CheckCircle, AlertCircle, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES, CITIES } from '@/lib/constants';
-import type { WeightClass, AthleteFormData } from '@/types';
+import type { WeightClass, AthleteFormData, Hand } from '@/types';
 
 const INITIAL_FORM: AthleteFormData = {
-  name: '', codename: '', gender: '男', weight_class: '78kg',
+  name: '', codename: '', gender: '男', hand: '右手', weight_class: '78kg',
   body_weight: '', city: '朝阳区', training_spot: '', achievements: '', bio: '', contact: '',
 };
 
 export function SubmitPage() {
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState<AthleteFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+
+  useEffect(() => {
+    const wc = searchParams.get('class'); const h = searchParams.get('hand');
+    if (wc) setForm(p => ({ ...p, weight_class: wc as WeightClass }));
+    if (h) setForm(p => ({ ...p, hand: h as Hand }));
+  }, [searchParams]);
 
   const updateField = <K extends keyof AthleteFormData>(key: K, value: AthleteFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -40,7 +47,7 @@ export function SubmitPage() {
     }
     const { error } = await supabase.from('athletes').insert({
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
-      hand: '右手',
+      hand: form.hand,
       weight_class: form.weight_class,
       body_weight: form.body_weight ? parseFloat(form.body_weight) : null,
       avatar_url: avatarUrl, city: form.city, training_spot: form.training_spot.trim() || null,
@@ -87,7 +94,7 @@ export function SubmitPage() {
           <ArrowLeft className="w-4 h-4" />返回首页
         </Link>
         <h1 className="text-3xl font-bold text-white mb-2">提交运动员信息</h1>
-        <p className="text-stone-500 mb-8">填写以下信息，提交后由管理员审核。审核通过即可上榜。</p>
+        <p className="text-stone-500 mb-8">填写以下信息，必填项仅姓名、惯用手、体重级别。信息不完整也可提交，审核通过后可随时补充修改。</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -111,6 +118,14 @@ export function SubmitPage() {
                 <option value="男">男</option><option value="女">女</option>
               </select>
             </div>
+            <div>
+              <label className={labelClass}>惯用手 *</label>
+              <select value={form.hand} onChange={(e) => updateField('hand', e.target.value as Hand)} className={selectClass}>
+                <option value="右手">✋ 右手</option><option value="左手">🤚 左手</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>体重级别 *</label>
               <select value={form.weight_class} onChange={(e) => updateField('weight_class', e.target.value as WeightClass)} className={selectClass}>

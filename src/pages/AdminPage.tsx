@@ -235,7 +235,7 @@ export function AdminPage() {
                     <motion.div key={a.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-5">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0"><h3 className="text-lg font-bold text-white">{a.name}</h3>
-                          <div className="text-sm text-stone-500 mt-1 space-x-3"><span>{a.gender}</span><span>{a.weight_class}</span>{a.body_weight && <span>{a.body_weight}kg</span>}<span>{a.city}</span></div>
+                          <div className="text-sm text-stone-500 mt-1 space-x-3"><span>{a.gender}</span><span>{a.hand}</span><span>{a.weight_class}</span>{a.body_weight && <span>{a.body_weight}kg</span>}<span>{a.city}</span></div>
                           {a.training_spot && <p className="text-sm text-stone-400 mt-1">🏠 {a.training_spot}</p>}{a.codename && <p className="text-sm text-brand-400 mt-1">⚡ {a.codename}</p>}{a.achievements && <p className="text-sm text-stone-400 mt-1">🏆 {a.achievements}</p>}{a.contact && <p className="text-sm text-stone-500 mt-1">📞 {a.contact}</p>}
                         </div>
                         <div className="flex gap-3 shrink-0">
