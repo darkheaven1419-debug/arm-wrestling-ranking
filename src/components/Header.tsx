@@ -54,15 +54,15 @@ export function Header() {
 
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden p-2 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
-          aria-label="Toggle menu"
+          className="md:hidden p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10"
+          aria-label="切换菜单"
         >
           {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
       {isMenuOpen && (
-        <nav className="md:hidden glass-strong border-t border-white/5 p-4"
+        <nav className="md:hidden bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 p-4 shadow-2xl"
           style={{ animation: 'fadeInUp 0.2s ease' }}>
           {NAV_LINKS.map((link) => (
             <Link
