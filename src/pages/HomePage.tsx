@@ -27,7 +27,8 @@ export function HomePage() {
   });
   const { data: announcements } = useQuery({
     queryKey: ['announcements'],
-    queryFn: async () => { const { data } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(2); return data as Announcement[]; }
+    queryFn: async () => { const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(2); if (error) return []; return (data || []) as Announcement[]; },
+    retry: false
   });
 
   return (

@@ -30,14 +30,17 @@ export function SubmitPage() {
     setIsSubmitting(true);
     let avatarUrl = null;
     if (avatarFile) {
-      const ext = avatarFile.name.split('.').pop();
-      const path = `athletes/${Date.now()}.${ext}`;
-      await supabase.storage.from('training-images').upload(path, avatarFile);
-      const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
-      avatarUrl = publicUrl;
+      try {
+        const ext = avatarFile.name.split('.').pop();
+        const path = `athletes/${Date.now()}.${ext}`;
+        await supabase.storage.from('training-images').upload(path, avatarFile);
+        const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
+        avatarUrl = publicUrl;
+      } catch (e) { console.error('Photo upload failed:', e); }
     }
     const { error } = await supabase.from('athletes').insert({
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
+      hand: '右手',
       weight_class: form.weight_class,
       body_weight: form.body_weight ? parseFloat(form.body_weight) : null,
       avatar_url: avatarUrl, city: form.city, training_spot: form.training_spot.trim() || null,
