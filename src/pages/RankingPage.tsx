@@ -7,15 +7,14 @@ import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Athlete } from '@/types';
 
 export function RankingPage() {
-  const { hand, weightClass } = useParams<{ hand: string; weightClass: string }>();
+  const { weightClass } = useParams<{ weightClass: string }>();
 
   const { data: athletes, isLoading } = useQuery({
-    queryKey: ['athletes', hand, weightClass],
+    queryKey: ['athletes', weightClass],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('athletes')
         .select('*')
-        .eq('hand', hand)
         .eq('weight_class', weightClass)
         .eq('status', 'approved')
         .order('rank_score', { ascending: false });
@@ -23,7 +22,7 @@ export function RankingPage() {
       if (error) throw error;
       return data as Athlete[];
     },
-    enabled: !!hand && !!weightClass,
+    enabled: !!weightClass,
   });
 
   const wc = WEIGHT_CLASSES.find((w) => w.value === weightClass);
@@ -51,7 +50,7 @@ export function RankingPage() {
             <span className="text-4xl">{wc?.icon}</span>
             <div>
               <h1 className="text-3xl font-bold text-white">
-                {hand} &middot; {wc?.label || weightClass}
+                {wc?.label || weightClass} 级别
               </h1>
               <p className="text-stone-500 mt-1">
                 {athletes?.length ?? '--'} 位运动员

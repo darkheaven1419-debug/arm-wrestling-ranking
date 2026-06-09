@@ -3,7 +3,7 @@ export interface Athlete {
   name: string;
   codename: string | null;
   gender: string;
-  hand: '左手' | '右手';
+  hand: string | null;
   weight_class: WeightClass;
   body_weight: number | null;
   city: string;
@@ -19,13 +19,10 @@ export interface Athlete {
 
 export type WeightClass = '63kg' | '70kg' | '78kg' | '86kg' | '95kg' | '105kg' | '105kg+';
 
-export type Hand = '左手' | '右手';
-
 export interface AthleteFormData {
   name: string;
   codename: string;
   gender: string;
-  hand: Hand;
   weight_class: WeightClass;
   body_weight: string;
   city: string;
@@ -42,5 +39,12 @@ export interface TrainingLocation {
   image_url: string | null;
   contact_person: string | null;
   description: string | null;
+  created_at: string;
+}
+
+export interface Announcement {
+  id: number;
+  title: string;
+  content: string | null;
   created_at: string;
 }

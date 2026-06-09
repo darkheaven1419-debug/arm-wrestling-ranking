@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, UserPlus, Trash2, Crown, Send, Edit3 } from 'lucide-react';
+import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, UserPlus, Trash2, Crown, Send, Edit3, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import type { Athlete } from '@/types';
@@ -12,7 +12,8 @@ interface AdminApp { id: number; user_id: string; status: string; created_at: st
 
 export function AdminPage() {
   const [session, setSession] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<'review' | 'admins' | 'applications'>('review');
+  const [activeTab, setActiveTab] = useState<'review' | 'admins' | 'applications' | 'announcements'>('review');
+  const [annTitle, setAnnTitle] = useState(''); const [annContent, setAnnContent] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [editingScore, setEditingScore] = useState<{ id: number; score: string } | null>(null);
   const queryClient = useQueryClient();
@@ -132,6 +133,12 @@ export function AdminPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const addAnnouncement = useMutation({
+    mutationFn: async () => { const { error } = await supabase.from('announcements').insert({ title: annTitle.trim(), content: annContent.trim() || null }); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['announcements'] }); setAnnTitle(''); setAnnContent(''); toast.success('公告已发布'); },
+    onError: () => toast.error('发布失败'),
+  });
+
   const removeAdmin = useMutation({
     mutationFn: async (id: number) => { const { error } = await supabase.from('admin_users').delete().eq('id', id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('已移除'); },
@@ -192,6 +199,7 @@ export function AdminPage() {
               <button onClick={() => setActiveTab('applications')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${activeTab === 'applications' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>
                 管理员申请 {pendingApps.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-black text-xs font-bold">{pendingApps.length}</span>}
               </button>
+              <button onClick={() => setActiveTab('announcements')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'announcements' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>发布公告</button>
               <button onClick={() => setActiveTab('admins')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'admins' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>管理管理员</button>
             </>
           )}
@@ -216,7 +224,7 @@ export function AdminPage() {
                     <motion.div key={a.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-5">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0"><h3 className="text-lg font-bold text-white">{a.name}</h3>
-                          <div className="text-sm text-stone-500 mt-1 space-x-3"><span>{a.gender}</span><span>{a.hand}</span><span>{a.weight_class}</span>{a.body_weight && <span>{a.body_weight}kg</span>}<span>{a.city}</span></div>
+                          <div className="text-sm text-stone-500 mt-1 space-x-3"><span>{a.gender}</span><span>{a.weight_class}</span>{a.body_weight && <span>{a.body_weight}kg</span>}<span>{a.city}</span></div>
                           {a.training_spot && <p className="text-sm text-stone-400 mt-1">🏠 {a.training_spot}</p>}{a.codename && <p className="text-sm text-brand-400 mt-1">⚡ {a.codename}</p>}{a.achievements && <p className="text-sm text-stone-400 mt-1">🏆 {a.achievements}</p>}{a.contact && <p className="text-sm text-stone-500 mt-1">📞 {a.contact}</p>}
                         </div>
                         <div className="flex gap-3 shrink-0">
@@ -280,6 +288,19 @@ export function AdminPage() {
                 ))}
               </div>
             ) : (<p className="text-center text-stone-600 py-8">暂无管理员申请</p>)}
+          </div>
+        )}
+
+        {activeTab === 'announcements' && (
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4"><Bell className="w-5 h-5 text-brand-400 inline mr-2" />发布公告</h2>
+            <div className="glass rounded-2xl p-5">
+              <div className="space-y-4">
+                <div><label className="block text-sm text-stone-400 mb-1.5">标题</label><input type="text" value={annTitle} onChange={e => setAnnTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all" placeholder="公告标题" /></div>
+                <div><label className="block text-sm text-stone-400 mb-1.5">内容</label><textarea value={annContent} onChange={e => setAnnContent(e.target.value)} rows={4} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all resize-none" placeholder="公告内容..." /></div>
+                <button onClick={() => { if (!annTitle.trim()) { toast.error('请填写标题'); return; } addAnnouncement.mutate(); }} disabled={addAnnouncement.isPending} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">{addAnnouncement.isPending ? '发布中...' : '发布公告'}</button>
+              </div>
+            </div>
           </div>
         )}
 

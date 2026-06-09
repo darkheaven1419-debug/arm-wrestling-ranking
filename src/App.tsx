@@ -13,7 +13,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/ranking/:hand/:weightClass" element={<RankingPage />} />
+        <Route path="/ranking/:weightClass" element={<RankingPage />} />
         <Route path="/submit" element={<SubmitPage />} />
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/admin" element={<AdminPage />} />

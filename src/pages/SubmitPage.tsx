@@ -5,11 +5,11 @@ import { ArrowLeft, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES, CITIES } from '@/lib/constants';
-import type { Hand, WeightClass, AthleteFormData } from '@/types';
+import type { WeightClass, AthleteFormData } from '@/types';
 
 const INITIAL_FORM: AthleteFormData = {
-  name: '', gender: '男', hand: '右手', weight_class: '78kg',
-  body_weight: '', city: '朝阳区', codename: '', training_spot: '', achievements: '', bio: '', contact: '',
+  name: '', codename: '', gender: '男', weight_class: '78kg',
+  body_weight: '', city: '朝阳区', training_spot: '', achievements: '', bio: '', contact: '',
 };
 
 export function SubmitPage() {
@@ -27,10 +27,10 @@ export function SubmitPage() {
 
     setIsSubmitting(true);
     const { error } = await supabase.from('athletes').insert({
-      name: form.name.trim(), gender: form.gender, hand: form.hand,
+      name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
       weight_class: form.weight_class,
       body_weight: form.body_weight ? parseFloat(form.body_weight) : null,
-      city: form.city, codename: form.codename.trim() || null, training_spot: form.training_spot.trim() || null,
+      city: form.city, training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
       bio: form.bio.trim() || null,
       contact: form.contact.trim() || null,
@@ -90,12 +90,6 @@ export function SubmitPage() {
                 <option value="男">男</option><option value="女">女</option>
               </select>
             </div>
-            <div>
-              <label className={labelClass}>惯用手</label>
-              <select value={form.hand} onChange={(e) => updateField('hand', e.target.value as Hand)} className={selectClass}>
-                <option value="右手">右手</option><option value="左手">左手</option>
-              </select>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -141,7 +135,7 @@ export function SubmitPage() {
           <div>
             <label className={labelClass}>比赛成绩</label>
             <textarea value={form.achievements} onChange={(e) => updateField('achievements', e.target.value)}
-              rows={3} className={inputClass + " resize-none"} placeholder="例：2024北京腕力公开赛 78kg 冠军" />
+              rows={3} className={inputClass + " resize-none"} placeholder="例如 联大腕力公开赛65kg冠军" />
           </div>
 
           <div>
