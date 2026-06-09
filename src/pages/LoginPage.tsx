@@ -23,28 +23,10 @@ export function LoginPage() {
     navigate('/profile');
   };
 
-  const handleReset = async (e: React.FormEvent) => {
+  const handleReset = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) { toast.error('请输入邮箱'); return; }
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo: 'https://darkheaven1419-debug.github.io/arm-wrestling-ranking/#/login',
-      });
-      setIsLoading(false);
-      if (error) {
-        if (error.message.includes('rate limit')) {
-          toast('邮件发送太频繁，请稍后再试。或联系管理员手动重置密码。', { icon: '⚠️', duration: 6000 });
-        } else {
-          toast.error('发送失败：' + error.message);
-        }
-        return;
-      }
-      toast.success('重置邮件已发送，请检查邮箱（可能在垃圾箱）');
-    } catch {
-      toast('邮件服务暂时不可用，请联系管理员重置密码', { icon: '⚠️', duration: 5000 });
-    }
-    setIsLoading(false);
+    toast('请联系管理员重置密码：1146882295@qq.com', { icon: '📧', duration: 6000 });
     setMode('login'); setPassword(''); setConfirmPassword('');
   };
 
@@ -81,14 +63,20 @@ export function LoginPage() {
           <div><label className="block text-sm text-stone-400 mb-1.5">邮箱</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={c} placeholder="输入邮箱地址" required /></div>
           {mode !== 'reset' && <div><label className="block text-sm text-stone-400 mb-1.5">密码</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={c} placeholder="••••••••" required /></div>}
           {mode === 'register' && <div><label className="block text-sm text-stone-400 mb-1.5">确认密码</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={c} placeholder="再次输入密码" required /></div>}
-          <button type="submit" disabled={isLoading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-            {isLoading ? <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : mode === 'reset' ? '发送重置邮件' : mode === 'login' ? <><LogIn className="w-4 h-4" />登录</> : <><UserPlus className="w-4 h-4" />注册</>}
-          </button>
+          {mode === 'reset' ? (
+            <div className="glass rounded-2xl p-6 text-center">
+              <p className="text-stone-300 text-sm mb-3">📧 忘记密码？</p>
+              <p className="text-stone-500 text-xs mb-4">请联系管理员帮你重置密码</p>
+              <p className="text-brand-400 text-sm font-mono">1146882295@qq.com</p>
+              <button type="button" onClick={() => setMode('login')} className="mt-4 text-xs text-stone-500 hover:text-stone-300 transition-colors">返回登录</button>
+            </div>
+          ) : (
+            <button type="submit" disabled={isLoading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+              {isLoading ? <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : mode === 'login' ? <><LogIn className="w-4 h-4" />登录</> : <><UserPlus className="w-4 h-4" />注册</>}
+            </button>
+          )}
           {mode === 'login' && (
             <button type="button" onClick={() => { setMode('reset'); setPassword(''); }} className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors">忘记密码？</button>
-          )}
-          {mode === 'reset' && (
-            <button type="button" onClick={() => setMode('login')} className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors">返回登录</button>
           )}
           {mode === 'register' && <p className="text-xs text-stone-600 text-center">注册即表示同意使用条款。密码至少 6 位。</p>}
         </form>

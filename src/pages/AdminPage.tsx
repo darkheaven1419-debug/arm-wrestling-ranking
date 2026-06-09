@@ -133,6 +133,23 @@ export function AdminPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const [pwEmail, setPwEmail] = useState('');
+  const resetPassword = async () => {
+    if (!pwEmail.trim()) { toast.error('请输入邮箱'); return; }
+    const res = await fetch('https://dqsodgwpxiklpyohwqhg.supabase.co/auth/v1/admin/users', {
+      headers: { apikey: supabase.supabaseKey, Authorization: 'Bearer ' + supabase.supabaseKey, 'Content-Type': 'application/json' }
+    });
+    const list = await res.json();
+    const target = (list.users || []).find((u: any) => u.email === pwEmail.trim().toLowerCase());
+    if (!target) { toast.error('未找到该用户'); return; }
+    await fetch(`https://dqsodgwpxiklpyohwqhg.supabase.co/auth/v1/admin/users/${target.id}`, {
+      method: 'PUT',
+      headers: { apikey: supabase.supabaseKey, Authorization: 'Bearer ' + supabase.supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'wrist123456' }),
+    });
+    toast.success(`密码已重置为 wrist123456，请通知用户：${pwEmail.trim()}`); setPwEmail('');
+  };
+
   const addAnnouncement = useMutation({
     mutationFn: async () => { const { error } = await supabase.from('announcements').insert({ title: annTitle.trim(), content: annContent.trim() || null }); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['announcements'] }); setAnnTitle(''); setAnnContent(''); toast.success('公告已发布'); },
@@ -313,6 +330,11 @@ export function AdminPage() {
                 <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate(newAdminEmail.trim()); }} disabled={addAdmin.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
               </div>
               <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。也可让对方在管理页自行申请。</p>
+            <div className="mt-6 pt-6 border-t border-white/5">
+              <h3 className="text-sm font-semibold text-white mb-3">🔑 重置用户密码</h3>
+              <div className="flex gap-3"><input type="email" value={pwEmail} onChange={e => setPwEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入用户邮箱" /><button onClick={resetPassword} className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 font-semibold text-sm hover:bg-amber-500/30 transition-all whitespace-nowrap">重置</button></div>
+              <p className="text-xs text-stone-600 mt-2">重置后密码为 wrist123456，通知用户登录后修改。</p>
+            </div>
             </div>
             <div className="space-y-2">
               {adminUsers?.map(admin => (
