@@ -9,7 +9,7 @@ import type { WeightClass, AthleteFormData, Hand } from '@/types';
 
 const INITIAL_FORM: AthleteFormData = {
   name: '', codename: '', gender: '男', hand: '右手', weight_class: '78kg',
-  body_weight: '', city: '朝阳区', training_spot: '', achievements: '', bio: '', contact: '',
+  city: '朝阳区', training_spot: '', achievements: '', bio: '', contact: '',
 };
 
 export function SubmitPage() {
@@ -51,7 +51,6 @@ export function SubmitPage() {
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
       hand: form.hand,
       weight_class: form.weight_class,
-      body_weight: form.body_weight ? parseFloat(form.body_weight) : null,
       avatar_url: avatarUrl, city: form.city, training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
       bio: form.bio.trim() || null,
@@ -107,10 +106,17 @@ export function SubmitPage() {
               <label className="flex items-center justify-center gap-2 w-24 h-24 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500"><Upload className="w-5 h-5" /><input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)); } }} className="hidden" /></label>
             )}
           </div>
-          <div>
-            <label className={labelClass}>姓名 <span className="text-red-400">*</span></label>
-            <input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)}
-              className={inputClass} placeholder="真实姓名" required />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>姓名 <span className="text-red-400">*</span></label>
+              <input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)}
+                className={inputClass} placeholder="真实姓名" required />
+            </div>
+            <div>
+              <label className={labelClass}>代号</label>
+              <input type="text" value={form.codename} onChange={(e) => updateField('codename', e.target.value)}
+                className={inputClass} placeholder="如：铁腕王（选填）" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -134,24 +140,11 @@ export function SubmitPage() {
                 {WEIGHT_CLASSES.map((wc) => (<option key={wc.value} value={wc.value}>{wc.icon} {wc.label}</option>))}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>体重 (kg)</label>
-              <input type="number" step="0.1" value={form.body_weight} onChange={(e) => updateField('body_weight', e.target.value)}
-                className={inputClass} placeholder="例: 75.5" />
-            </div>
             <div>
               <label className={labelClass}>所在区</label>
               <select value={form.city} onChange={(e) => updateField('city', e.target.value)} className={selectClass}>
                 {CITIES.map((city) => (<option key={city} value={city}>{city}</option>))}
               </select>
-            </div>
-            <div>
-              <label className={labelClass}>代号</label>
-              <input type="text" value={form.codename} onChange={(e) => updateField('codename', e.target.value)}
-                className={inputClass} placeholder="如：铁腕王（选填）" />
             </div>
           </div>
 

@@ -27,7 +27,6 @@ export interface AthleteFormData {
   gender: string;
   hand: Hand;
   weight_class: WeightClass;
-  body_weight: string;
   city: string;
   training_spot: string;
   achievements: string;
