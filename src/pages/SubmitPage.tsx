@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Send, CheckCircle, AlertCircle, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ const INITIAL_FORM: AthleteFormData = {
 };
 
 export function SubmitPage() {
-  const [searchParams] = useSearchParams();
+  const loc = useLocation();
   const [form, setForm] = useState<AthleteFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -21,10 +21,11 @@ export function SubmitPage() {
   const [avatarPreview, setAvatarPreview] = useState('');
 
   useEffect(() => {
-    const wc = searchParams.get('class'); const h = searchParams.get('hand');
+    const hash = window.location.hash; const q = new URLSearchParams(hash.split('?')[1] || '');
+    const wc = q.get('class'); const h = q.get('hand');
     if (wc) setForm(p => ({ ...p, weight_class: wc as WeightClass }));
     if (h) setForm(p => ({ ...p, hand: h as Hand }));
-  }, [searchParams]);
+  }, [loc]);
 
   const updateField = <K extends keyof AthleteFormData>(key: K, value: AthleteFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -32,7 +33,8 @@ export function SubmitPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { toast.error('请填写姓名'); return; }
+    const missing = []; if (!form.name.trim()) missing.push('姓名'); if (!form.weight_class) missing.push('体重级别'); if (!form.hand) missing.push('惯用手');
+    if (missing.length) { toast.error('请填写必填项：' + missing.join('、')); return; }
 
     setIsSubmitting(true);
     let avatarUrl = null;
@@ -106,7 +108,7 @@ export function SubmitPage() {
             )}
           </div>
           <div>
-            <label className={labelClass}>姓名 *</label>
+            <label className={labelClass}>姓名 <span className="text-red-400">*</span></label>
             <input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)}
               className={inputClass} placeholder="真实姓名" required />
           </div>
@@ -119,7 +121,7 @@ export function SubmitPage() {
               </select>
             </div>
             <div>
-              <label className={labelClass}>惯用手 *</label>
+              <label className={labelClass}>惯用手 <span className="text-red-400">*</span></label>
               <select value={form.hand} onChange={(e) => updateField('hand', e.target.value as Hand)} className={selectClass}>
                 <option value="右手">✋ 右手</option><option value="左手">🤚 左手</option>
               </select>
@@ -127,7 +129,7 @@ export function SubmitPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>体重级别 *</label>
+              <label className={labelClass}>体重级别 <span className="text-red-400">*</span></label>
               <select value={form.weight_class} onChange={(e) => updateField('weight_class', e.target.value as WeightClass)} className={selectClass}>
                 {WEIGHT_CLASSES.map((wc) => (<option key={wc.value} value={wc.value}>{wc.icon} {wc.label}</option>))}
               </select>

@@ -68,7 +68,7 @@ export function HomePage() {
           </motion.div>
 
           <motion.div className="flex justify-center gap-3 flex-wrap" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.32 }}>
-            <Link to="/submit" className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 hover:to-brand-500 transition-all duration-300 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-105">
+            <Link to={`/submit?hand=${selectedHand}`} className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 hover:to-brand-500 transition-all duration-300 shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 hover:scale-105">
               提交我的信息 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link to="/training" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-stone-300 font-semibold hover:bg-white/10 hover:border-white/20 transition-all duration-300">
@@ -143,7 +143,7 @@ export function HomePage() {
       )}
 
       <motion.div className="text-center pb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-        <Link to="/submit" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all duration-300">
+        <Link to={`/submit?hand=${selectedHand}`} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all duration-300">
           <Dumbbell className="w-4 h-4" /> 提交你的运动员信息 <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </motion.div>
