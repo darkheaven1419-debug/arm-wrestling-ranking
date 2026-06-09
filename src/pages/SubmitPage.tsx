@@ -25,6 +25,12 @@ export function SubmitPage() {
     const wc = q.get('class'); const h = q.get('hand');
     if (wc) setForm(p => ({ ...p, weight_class: wc as WeightClass }));
     if (h) setForm(p => ({ ...p, hand: h as Hand }));
+    // Auto-fill training spot from profile
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) supabase.from('profiles').select('training_spot').eq('user_id', user.id).maybeSingle().then(({ data: p }) => {
+        if (p?.training_spot) setForm(f => ({ ...f, training_spot: p.training_spot || '' }));
+      });
+    });
   }, [loc]);
 
   const updateField = <K extends keyof AthleteFormData>(key: K, value: AthleteFormData[K]) => {
