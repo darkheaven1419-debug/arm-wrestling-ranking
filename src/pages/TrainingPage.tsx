@@ -44,7 +44,8 @@ export function TrainingPage() {
       }
       const { error } = await supabase.from('training_locations').insert({
         name: name.trim(), address: address.trim() || null, image_url: imageUrl,
-        contact_person: contactPerson.trim() || null, description: description.trim() || null
+        contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null,
+        schedule: schedule.trim() || null, description: description.trim() || null
       });
       if (error) throw error;
     },
@@ -104,7 +105,8 @@ export function TrainingPage() {
               <div className="p-5">
                 <h3 className="text-lg font-bold text-white mb-2">{loc.name}</h3>
                 {loc.address && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{loc.address}</p>}
-                {loc.contact_person && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1"><User className="w-3.5 h-3.5" />{loc.contact_person}</p>}
+                {loc.contact_person && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1"><User className="w-3.5 h-3.5" />{loc.contact_person}{loc.contact_phone && <span className="text-stone-600 ml-2">📞 {loc.contact_phone}</span>}</p>}
+                {loc.schedule && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1">🕐 {loc.schedule}</p>}
                 {loc.description && <p className="text-sm text-stone-500 mt-2 flex items-start gap-1"><FileText className="w-3.5 h-3.5 mt-0.5 shrink-0" />{loc.description}</p>}
                 {isAdmin && <button onClick={() => deleteLocation.mutate(loc.id)} disabled={deleteLocation.isPending} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button>}
               </div>

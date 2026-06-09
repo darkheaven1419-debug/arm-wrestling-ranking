@@ -38,6 +38,8 @@ export interface TrainingLocation {
   address: string | null;
   image_url: string | null;
   contact_person: string | null;
+  contact_phone: string | null;
+  schedule: string | null;
   description: string | null;
   created_at: string;
 }
