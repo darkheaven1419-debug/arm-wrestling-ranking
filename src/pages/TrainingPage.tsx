@@ -14,8 +14,16 @@ export function TrainingPage() {
   const [contactPerson, setContactPerson] = useState(''); const [contactPhone, setContactPhone] = useState('');
   const [schedule, setSchedule] = useState(''); const [description, setDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
+
+  const startEdit = (loc: any) => {
+    setName(loc.name); setAddress(loc.address || ''); setContactPerson(loc.contact_person || '');
+    setContactPhone(loc.contact_phone || ''); setSchedule(loc.schedule || ''); setDescription(loc.description || '');
+    setImagePreview(loc.image_url || ''); setEditingId(loc.id); setShowForm(true);
+  };
+  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setImageFile(null); setImagePreview(''); setEditingId(null); setShowForm(false); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -40,9 +48,9 @@ export function TrainingPage() {
     onError: () => toast.error('操作失败'),
   });
 
-  const createLocation = useMutation({
+  const saveLocation = useMutation({
     mutationFn: async () => {
-      let imageUrl = null;
+      let imageUrl = (editingId && !imageFile) ? imagePreview : null;
       if (imageFile) {
         setIsUploading(true);
         const ext = imageFile.name.split('.').pop();
@@ -50,18 +58,16 @@ export function TrainingPage() {
         const { error: upErr } = await supabase.storage.from('training-images').upload(path, imageFile);
         if (upErr) throw new Error('图片上传失败');
         const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
-        imageUrl = publicUrl;
-        setIsUploading(false);
+        imageUrl = publicUrl; setIsUploading(false);
       }
-      const { error } = await supabase.from('training_locations').insert({
-        name: name.trim(), address: address.trim() || null, image_url: imageUrl,
-        contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null,
-        schedule: schedule.trim() || null, description: description.trim() || null
-      });
+      const payload = { name: name.trim(), address: address.trim() || null, image_url: imageUrl, contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null, schedule: schedule.trim() || null, description: description.trim() || null };
+      const { error } = editingId
+        ? await supabase.from('training_locations').update(payload).eq('id', editingId)
+        : await supabase.from('training_locations').insert(payload);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['training-locations'] }); setShowForm(false); setName(''); setAddress(''); setImageFile(null); setImagePreview(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); toast.success('已添加'); },
-    onError: (e: Error) => toast.error(e.message || '添加失败'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['training-locations'] }); resetForm(); toast.success(editingId ? '已更新' : '已添加'); },
+    onError: (e: Error) => toast.error(e.message || '操作失败'),
   });
 
   const deleteLocation = useMutation({
@@ -74,12 +80,12 @@ export function TrainingPage() {
     <div className="pt-24 pb-20 px-4"><div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div><Link to="/" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-300 transition-colors mb-2"><ArrowLeft className="w-4 h-4" />返回首页</Link><h1 className="text-2xl font-bold text-white flex items-center gap-2"><MapPin className="w-6 h-6 text-brand-400" />集训地点</h1></div>
-        {isAdmin && <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all"><Plus className="w-4 h-4" />{showForm ? '取消' : '添加地点'}</button>}
+        {isAdmin && <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all"><Plus className="w-4 h-4" />{showForm ? '取消' : '添加地点'}</button>}
       </div>
 
       {showForm && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="glass rounded-2xl p-6 mb-8 overflow-hidden">
-          <h3 className="text-lg font-bold text-white mb-4">添加集训地点</h3>
+          <h3 className="text-lg font-bold text-white mb-4">{editingId ? '编辑集训地点' : '添加集训地点'}</h3>
           <p className="text-xs text-stone-500 mb-4">💡 提示：填写尽可能详细的信息，方便其他腕力爱好者找到这里。带 * 为必填。</p>
           <div className="space-y-4">
             <div><label className="block text-sm text-stone-400 mb-1.5">🏠 地点名称 *</label><input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all" placeholder="如：朝阳区铁腕训练馆" /></div>
@@ -101,7 +107,7 @@ export function TrainingPage() {
               <p className="text-xs text-stone-600 mt-1">拍摄场地环境、器材设备等，让人更直观了解</p>
             </div>
             <div><label className="block text-sm text-stone-400 mb-1.5">📝 简介/备注</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all resize-none" placeholder="介绍一下场地环境、器材情况、训练氛围等" /><p className="text-xs text-stone-600 mt-1">可以写场地大小、有什么器械、适合什么水平等</p></div>
-            <button onClick={() => createLocation.mutate()} disabled={!name.trim() || isUploading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">{isUploading ? '上传中...' : '添加集训地点'}</button>
+            <button onClick={() => saveLocation.mutate()} disabled={!name.trim() || isUploading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">{isUploading ? '上传中...' : editingId ? '保存修改' : '添加集训地点'}</button>
           </div>
         </motion.div>
       )}
@@ -121,7 +127,7 @@ export function TrainingPage() {
                 {loc.description && <p className="text-sm text-stone-500 mt-2 flex items-start gap-1"><FileText className="w-3.5 h-3.5 mt-0.5 shrink-0" />{loc.description}</p>}
                 {(loc as any).status === 'pending' && isAdmin && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">待审核</span>}
                 {isAdmin && (loc as any).status === 'pending' && <div className="flex gap-2 mt-2"><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'approved' })} disabled={approveLocation.isPending} className="text-xs text-emerald-400 hover:text-emerald-300">✓ 通过</button><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'rejected' })} disabled={approveLocation.isPending} className="text-xs text-red-400 hover:text-red-300">✕ 拒绝</button></div>}
-                {isAdmin && <button onClick={() => deleteLocation.mutate(loc.id)} disabled={deleteLocation.isPending} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button>}
+                {isAdmin && <div className="flex gap-3 mt-3"><button onClick={(e) => { e.preventDefault(); startEdit(loc); }} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">✏️ 编辑</button><button onClick={() => deleteLocation.mutate(loc.id)} disabled={deleteLocation.isPending} className="text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button></div>}
               </div>
             </motion.div>
           ))}
