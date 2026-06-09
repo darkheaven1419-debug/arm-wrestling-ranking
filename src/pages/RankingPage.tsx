@@ -107,12 +107,13 @@ export function RankingPage() {
                   )}
                 </div>
 
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                  <User className="w-6 h-6 text-stone-600" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/20 to-violet-500/10 flex items-center justify-center shrink-0 border border-brand-500/20">
+                  <User className="w-5 h-5 text-brand-400" />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-white truncate">
+                    {athlete.codename && <span className="text-brand-400 mr-2">{athlete.codename}</span>}
                     {athlete.name}
                   </h3>
                   <div className="flex items-center gap-3 text-sm text-stone-500 mt-0.5 flex-wrap">
