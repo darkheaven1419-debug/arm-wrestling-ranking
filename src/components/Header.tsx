@@ -6,6 +6,8 @@ import { SITE_NAME } from '@/lib/constants';
 const NAV_LINKS = [
   { to: '/', label: '首页' },
   { to: '/submit', label: '提交信息', icon: PlusCircle },
+  { to: '/profile', label: '个人', icon: User },
+  { to: '/profile', label: '个人', icon: User },
   { to: '/admin', label: '管理', icon: UserCog },
 ];
 
