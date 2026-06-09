@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 
 export function LoginPage() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,6 +21,19 @@ export function LoginPage() {
     if (error) { toast.error('登录失败，请检查邮箱和密码'); return; }
     toast.success('登录成功');
     navigate('/profile');
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) { toast.error('请输入邮箱'); return; }
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: 'https://darkheaven1419-debug.github.io/arm-wrestling-ranking/#/login',
+    });
+    setIsLoading(false);
+    if (error) { toast.error('发送失败：' + error.message); return; }
+    toast.success('重置邮件已发送，请检查邮箱');
+    setMode('login'); setPassword(''); setConfirmPassword('');
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -50,13 +63,19 @@ export function LoginPage() {
           <button onClick={() => setMode('login')} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${mode === 'login' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}><LogIn className="w-4 h-4 inline mr-1.5" />登录</button>
           <button onClick={() => setMode('register')} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${mode === 'register' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}><UserPlus className="w-4 h-4 inline mr-1.5" />注册</button>
         </div>
-        <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-4">
-          <div><label className="block text-sm text-stone-400 mb-1.5">账号</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={c} placeholder="输入邮箱地址" required /></div>
-          <div><label className="block text-sm text-stone-400 mb-1.5">密码</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={c} placeholder="••••••••" required /></div>
+        <form onSubmit={mode === 'login' ? handleLogin : mode === 'register' ? handleRegister : handleReset} className="space-y-4">
+          <div><label className="block text-sm text-stone-400 mb-1.5">邮箱</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={c} placeholder="输入邮箱地址" required /></div>
+          {mode !== 'reset' && <div><label className="block text-sm text-stone-400 mb-1.5">密码</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={c} placeholder="••••••••" required /></div>}
           {mode === 'register' && <div><label className="block text-sm text-stone-400 mb-1.5">确认密码</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={c} placeholder="再次输入密码" required /></div>}
           <button type="submit" disabled={isLoading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold hover:from-brand-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-            {isLoading ? <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : mode === 'login' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}{isLoading ? '处理中...' : mode === 'login' ? '登录' : '注册'}
+            {isLoading ? <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : mode === 'reset' ? '发送重置邮件' : mode === 'login' ? <><LogIn className="w-4 h-4" />登录</> : <><UserPlus className="w-4 h-4" />注册</>}
           </button>
+          {mode === 'login' && (
+            <button type="button" onClick={() => { setMode('reset'); setPassword(''); }} className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors">忘记密码？</button>
+          )}
+          {mode === 'reset' && (
+            <button type="button" onClick={() => setMode('login')} className="w-full text-xs text-stone-500 hover:text-stone-300 transition-colors">返回登录</button>
+          )}
           {mode === 'register' && <p className="text-xs text-stone-600 text-center">注册即表示同意使用条款。密码至少 6 位。</p>}
         </form>
       </div>
