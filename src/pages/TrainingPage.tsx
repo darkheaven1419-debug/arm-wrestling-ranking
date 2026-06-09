@@ -25,8 +25,19 @@ export function TrainingPage() {
   useEffect(() => { supabase.auth.getSession().then(async ({ data: { session } }) => { if (session) { const { data } = await supabase.from('admin_users').select('role').eq('user_id', session.user.id).maybeSingle(); setIsAdmin(!!data); } }); }, []);
 
   const { data: locations, isLoading } = useQuery({
-    queryKey: ['training-locations'],
-    queryFn: async () => { const { data, error } = await supabase.from('training_locations').select('*').order('created_at', { ascending: false }); if (error) throw error; return data as TrainingLocation[]; }
+    queryKey: ['training-locations', isAdmin],
+    queryFn: async () => {
+      let q = supabase.from('training_locations').select('*').order('created_at', { ascending: false });
+      if (!isAdmin) q = q.eq('status', 'approved');
+      const { data, error } = await q;
+      if (error) throw error; return (data || []) as (TrainingLocation & { status?: string })[];
+    }
+  });
+
+  const approveLocation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => { const { error } = await supabase.from('training_locations').update({ status }).eq('id', id); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['training-locations'] }); toast.success('已更新'); },
+    onError: () => toast.error('操作失败'),
   });
 
   const createLocation = useMutation({
@@ -108,6 +119,8 @@ export function TrainingPage() {
                 {loc.contact_person && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1"><User className="w-3.5 h-3.5" />{loc.contact_person}{loc.contact_phone && <span className="text-stone-600 ml-2">📞 {loc.contact_phone}</span>}</p>}
                 {loc.schedule && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1">🕐 {loc.schedule}</p>}
                 {loc.description && <p className="text-sm text-stone-500 mt-2 flex items-start gap-1"><FileText className="w-3.5 h-3.5 mt-0.5 shrink-0" />{loc.description}</p>}
+                {(loc as any).status === 'pending' && isAdmin && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">待审核</span>}
+                {isAdmin && (loc as any).status === 'pending' && <div className="flex gap-2 mt-2"><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'approved' })} disabled={approveLocation.isPending} className="text-xs text-emerald-400 hover:text-emerald-300">✓ 通过</button><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'rejected' })} disabled={approveLocation.isPending} className="text-xs text-red-400 hover:text-red-300">✕ 拒绝</button></div>}
                 {isAdmin && <button onClick={() => deleteLocation.mutate(loc.id)} disabled={deleteLocation.isPending} className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button>}
               </div>
             </motion.div>

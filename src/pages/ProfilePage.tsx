@@ -20,7 +20,7 @@ export function ProfilePage() {
 
   const { data: locations } = useQuery({
     queryKey: ['training-locations-list'],
-    queryFn: async () => { const { data } = await supabase.from('training_locations').select('*').order('name'); return (data || []) as TrainingLocation[]; }
+    queryFn: async () => { const { data } = await supabase.from('training_locations').select('*').eq('status', 'approved').order('name'); return (data || []) as TrainingLocation[]; }
   });
 
   const { data: profile, isLoading } = useQuery({
