@@ -7,28 +7,47 @@ import { supabase } from '@/lib/supabase';
 import { computePowerLevel } from '@/lib/powerLevel';
 import type { Athlete } from '@/types';
 
-function AthleteCard({ athlete, onRemove }: { athlete: Athlete; onRemove: () => void }) {
-  const powerLevel = (athlete.rank_score ?? 0) > 0 ? computePowerLevel(athlete.rank_score!) : 0;
+function StatBar({ label, aVal, bVal, maxVal }: { label: string; aVal: number; bVal: number; maxVal: number }) {
+  const aPct = maxVal > 0 ? (aVal / maxVal) * 100 : 0;
+  const bPct = maxVal > 0 ? (bVal / maxVal) * 100 : 0;
   return (
-    <div className="glass rounded-2xl p-6 flex-1 min-w-0">
+    <div className="mb-2">
+      <div className="text-xs text-stone-400 mb-1">{label}</div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-brand-400 font-bold w-10 text-right">{aVal}</span>
+        <div className="flex-1 flex gap-1">
+          <div className="h-1.5 rounded-full bg-brand-500/20 flex-1 flex justify-end"><div className="h-full bg-brand-500 rounded-full transition-all duration-700" style={{ width: `${aPct}%` }} /></div>
+          <div className="h-1.5 rounded-full bg-stone-500/20 flex-1"><div className="h-full bg-stone-400 rounded-full transition-all duration-700" style={{ width: `${bPct}%` }} /></div>
+        </div>
+        <span className="text-xs text-stone-400 font-bold w-10">{bVal}</span>
+      </div>
+    </div>
+  );
+}
+
+function AthleteCard({ athlete, onRemove, stats }: { athlete: Athlete; onRemove: () => void; stats?: { wins: number; losses: number } }) {
+  const rankScore = athlete.rank_score ?? 0;
+  const powerLevel = rankScore > 0 ? computePowerLevel(rankScore) : 0;
+  return (
+    <div className="glass rounded-2xl p-6 flex-1 min-w-0" role="region" aria-label={`运动员 ${athlete.name}`}>
       <div className="flex items-start gap-4 mb-4">
         <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-brand-500/30 shrink-0">
-          {athlete.avatar_url ? <img src={athlete.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 flex items-center justify-center"><User className="w-8 h-8 text-brand-400" /></div>}
+          {athlete.avatar_url ? <img src={athlete.avatar_url} alt={athlete.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 flex items-center justify-center"><User className="w-8 h-8 text-brand-400" /></div>}
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-white truncate">{athlete.name}</h2>
           {athlete.codename && <p className="text-brand-400 text-sm">「{athlete.codename}」</p>}
           {powerLevel > 0 && <p className="text-brand-400 text-sm font-bold mt-1">战力值 {powerLevel}</p>}
         </div>
-        {onRemove && <button onClick={onRemove} className="text-stone-600 hover:text-stone-400 text-sm">✕</button>}
+        {onRemove && <button onClick={onRemove} className="text-stone-600 hover:text-stone-400 text-sm" aria-label="移除运动员">✕</button>}
       </div>
       <div className="space-y-2 text-sm">
         <div className="flex justify-between"><span className="text-stone-500">级别</span><span className="text-white">{athlete.weight_class}</span></div>
         <div className="flex justify-between"><span className="text-stone-500">惯用手</span><span className="text-white">{athlete.hand}</span></div>
         <div className="flex justify-between"><span className="text-stone-500">地区</span><span className="text-white">{athlete.city}</span></div>
+        {stats && <div className="flex justify-between"><span className="text-stone-500">战绩</span><span className="text-white">{stats.wins}胜 {stats.losses}负</span></div>}
       </div>
       {athlete.achievements && <div className="mt-4 pt-4 border-t border-white/5"><p className="text-xs text-stone-400 mb-1">🏆 比赛成绩</p><p className="text-white text-sm">{athlete.achievements}</p></div>}
-      {athlete.training_spot && <div className="mt-2"><p className="text-xs text-stone-500">🏠 常去：{athlete.training_spot}</p></div>}
     </div>
   );
 }
@@ -106,7 +125,16 @@ export function ComparePage() {
               <span className="text-stone-600 text-lg">vs</span>
               <span className="text-white font-bold text-lg">{selectedB.name}</span>
             </div>
-            <p className="text-xs text-stone-500 mt-2">
+            <div className="mt-4 space-y-1">
+              <StatBar label="战力值" aVal={(selectedA.rank_score ?? 0) > 0 ? computePowerLevel(selectedA.rank_score!) : 0} bVal={(selectedB.rank_score ?? 0) > 0 ? computePowerLevel(selectedB.rank_score!) : 0} maxVal={120} />
+              {(() => {
+                const aWins = (selectedA as any)._wins || 0; const aLosses = (selectedA as any)._losses || 0;
+                const bWins = (selectedB as any)._wins || 0; const bLosses = (selectedB as any)._losses || 0;
+                const maxBattles = Math.max(aWins + aLosses, bWins + bLosses, 1);
+                return <StatBar label="胜场数" aVal={aWins} bVal={bWins} maxVal={maxBattles} />;
+              })()}
+            </div>
+            <p className="text-xs text-stone-500 mt-3">
               {selectedA.weight_class === selectedB.weight_class ? `同级别：${selectedA.weight_class}` : `不同级别：${selectedA.weight_class} vs ${selectedB.weight_class}`}
               {selectedA.hand === selectedB.hand ? ` · 同为${selectedA.hand}` : ` · ${selectedA.hand} vs ${selectedB.hand}`}
             </p>
