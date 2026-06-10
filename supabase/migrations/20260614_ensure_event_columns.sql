@@ -1,6 +1,0 @@
-ALTER TABLE events ADD COLUMN IF NOT EXISTS contact_info TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_fee TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS prizes TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS contact_person TEXT;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS poster_urls JSONB DEFAULT '[]';
-NOTIFY pgrst, 'reload schema';
