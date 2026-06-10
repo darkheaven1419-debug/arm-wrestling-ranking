@@ -43,7 +43,43 @@ export interface TrainingLocation {
   contact_phone: string | null;
   schedule: string | null;
   description: string | null;
+  status?: string;
   created_at: string;
+}
+
+export interface ArmEvent {
+  id: number;
+  title: string;
+  event_date: string;
+  location: string | null;
+  description: string | null;
+  weight_classes: string[] | null;
+  poster_url: string | null;
+  contact_info: string | null;
+  created_at: string;
+}
+
+export interface BattleRecord {
+  id: number;
+  winner_id: number;
+  loser_id: number;
+  winner_name?: string;
+  loser_name?: string;
+  hand: string;
+  event_name: string | null;
+  notes: string | null;
+  recorded_by: string | null;
+  created_at: string;
+}
+
+export interface Article {
+  id: number;
+  title: string;
+  content: string;
+  category: 'technique' | 'training' | 'nutrition' | 'gear' | 'other';
+  author_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Announcement {

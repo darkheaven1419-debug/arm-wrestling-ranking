@@ -8,6 +8,10 @@ import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { TrainingPage } from '@/pages/TrainingPage';
 import { AthletePage } from '@/pages/AthletePage';
+import { EventsPage } from '@/pages/EventsPage';
+import { ComparePage } from '@/pages/ComparePage';
+import { ArticlesPage } from '@/pages/ArticlesPage';
+import { ArticleDetailPage } from '@/pages/ArticleDetailPage';
 
 export default function App() {
   return (
@@ -18,6 +22,10 @@ export default function App() {
         <Route path="/athlete/:athleteId" element={<AthletePage />} />
         <Route path="/submit" element={<SubmitPage />} />
         <Route path="/training" element={<TrainingPage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/articles" element={<ArticlesPage />} />
+        <Route path="/article/:articleId" element={<ArticleDetailPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/profile" element={<ProfilePage />} />

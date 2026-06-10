@@ -148,6 +148,71 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ================================================================================
 -- 初始化说明
 -- ================================================================================
+-- ================================================================================
+-- events 表（赛事日历）
+-- ================================================================================
+CREATE TABLE events (
+  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  title         TEXT NOT NULL,
+  event_date    DATE NOT NULL,
+  location      TEXT,
+  description   TEXT,
+  weight_classes TEXT[],
+  poster_url    TEXT,
+  contact_info  TEXT,
+  created_by    UUID REFERENCES auth.users(id),
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone read events" ON events FOR SELECT USING (true);
+CREATE POLICY "Admins insert events" ON events FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "Admins update events" ON events FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+CREATE POLICY "Admins delete events" ON events FOR DELETE USING (is_admin());
+
+-- ================================================================================
+-- battle_records 表（切磋对战记录）
+-- ================================================================================
+CREATE TABLE battle_records (
+  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  winner_id     BIGINT NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+  loser_id      BIGINT NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+  hand          TEXT NOT NULL CHECK (hand IN ('左手', '右手')),
+  event_name    TEXT,
+  notes         TEXT,
+  recorded_by   UUID REFERENCES auth.users(id),
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE battle_records ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone read battle_records" ON battle_records FOR SELECT USING (true);
+CREATE POLICY "Auth users insert battle_records" ON battle_records FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admins delete battle_records" ON battle_records FOR DELETE USING (is_admin());
+
+-- ================================================================================
+-- articles 表（技术文章）
+-- ================================================================================
+CREATE TABLE articles (
+  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  title         TEXT NOT NULL,
+  content       TEXT NOT NULL,
+  category      TEXT DEFAULT 'other' CHECK (category IN ('technique', 'training', 'nutrition', 'gear', 'other')),
+  author_id     UUID REFERENCES auth.users(id),
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone read articles" ON articles FOR SELECT USING (true);
+CREATE POLICY "Admins insert articles" ON articles FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "Admins update articles" ON articles FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+CREATE POLICY "Admins delete articles" ON articles FOR DELETE USING (is_admin());
+
+-- ================================================================================
+-- athletes 表添加视频链接字段
+-- ================================================================================
+ALTER TABLE athletes ADD COLUMN IF NOT EXISTS video_urls JSONB DEFAULT '[]';
+
 -- 执行完以上 SQL 后，手动在 Supabase Auth 中创建你的管理员账号：
 --   Authentication → Users → Add User → 填写邮箱和密码
 -- 然后查询你的 user ID：

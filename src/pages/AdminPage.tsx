@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, UserPlus, Trash2, Crown, Send, Edit3, Bell } from 'lucide-react';
+import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, UserPlus, Trash2, Crown, Send, Edit3, Bell, Calendar, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import type { Athlete } from '@/types';
@@ -12,8 +12,13 @@ interface AdminApp { id: number; user_id: string; status: string; created_at: st
 
 export function AdminPage() {
   const [session, setSession] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<'review' | 'admins' | 'applications' | 'announcements'>('review');
+  const [activeTab, setActiveTab] = useState<'review' | 'admins' | 'applications' | 'announcements' | 'events' | 'articles'>('review');
   const [annTitle, setAnnTitle] = useState(''); const [annContent, setAnnContent] = useState('');
+  const [evtTitle, setEvtTitle] = useState(''); const [evtDate, setEvtDate] = useState('');
+  const [evtLocation, setEvtLocation] = useState(''); const [evtDesc, setEvtDesc] = useState('');
+  const [evtClasses, setEvtClasses] = useState(''); const [evtContact, setEvtContact] = useState('');
+  const [artTitle, setArtTitle] = useState(''); const [artContent, setArtContent] = useState('');
+  const [artCategory, setArtCategory] = useState('technique');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [editingScore, setEditingScore] = useState<{ id: number; score: string } | null>(null);
   const queryClient = useQueryClient();
@@ -28,7 +33,7 @@ export function AdminPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
       const { data, error } = await supabase.from('admin_users').select('role').eq('user_id', user.id).maybeSingle();
-      if (error) { console.error('Role check error:', error); return null; }
+      if (error) { toast.error('Role check error'); return null; }
       return data?.role ?? null;
     },
     enabled: session === true,
@@ -113,8 +118,13 @@ export function AdminPage() {
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       if (status === 'approved') {
         const app = applications?.find((a) => a.id === id);
-        if (app) { await supabase.from('admin_users').insert({ user_id: app.user_id, role: 'admin' }); }
-        await supabase.from('admin_applications').delete().eq('id', id);
+        if (app) {
+          // Insert admin first, then delete application on success
+          const { error: insertErr } = await supabase.from('admin_users').insert({ user_id: app.user_id, role: 'admin' });
+          if (insertErr) throw new Error('Failed to add admin: ' + insertErr.message);
+          const { error: deleteErr } = await supabase.from('admin_applications').delete().eq('id', id);
+          if (deleteErr) throw new Error('Admin added but failed to clean up application');
+        }
       } else {
         await supabase.from('admin_applications').update({ status: 'rejected' }).eq('id', id);
       }
@@ -134,19 +144,38 @@ export function AdminPage() {
   });
 
   const [pwEmail, setPwEmail] = useState('');
-  const resetPassword = async () => {
+  const [resetPassword, setResetPassword] = useState('');
+  const handleResetPassword = async () => {
     if (!pwEmail.trim()) { toast.error('请输入邮箱'); return; }
+    const newPwd = resetPassword.trim() || 'wrist123456';
     const { data, error } = await supabase.rpc('admin_reset_password', {
       target_email: pwEmail.trim().toLowerCase(),
-      new_password: 'wrist123456'
+      new_password: newPwd
     });
     if (error || data?.startsWith('error:')) { toast.error(data?.replace('error: ', '') || '重置失败'); return; }
-    toast.success('密码已重置为 wrist123456'); setPwEmail('');
+    toast.success(`密码已重置为 ${newPwd}`); setPwEmail(''); setResetPassword('');
   };
 
   const addAnnouncement = useMutation({
     mutationFn: async () => { const { error } = await supabase.from('announcements').insert({ title: annTitle.trim(), content: annContent.trim() || null }); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['announcements'] }); setAnnTitle(''); setAnnContent(''); toast.success('公告已发布'); },
+    onError: () => toast.error('发布失败'),
+  });
+
+  const addEvent = useMutation({
+    mutationFn: async () => {
+      if (!evtTitle.trim() || !evtDate) { toast.error('请填写标题和日期'); throw new Error('validation'); }
+      const classes = evtClasses.trim() ? evtClasses.split(',').map(s => s.trim()).filter(Boolean) : null;
+      const { error } = await supabase.from('events').insert({ title: evtTitle.trim(), event_date: evtDate, location: evtLocation.trim() || null, description: evtDesc.trim() || null, weight_classes: classes, contact_info: evtContact.trim() || null });
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); toast.success('赛事已添加'); },
+    onError: (e: Error) => { if (e.message !== 'validation') toast.error('添加失败'); },
+  });
+
+  const addArticle = useMutation({
+    mutationFn: async () => { const { error } = await supabase.from('articles').insert({ title: artTitle.trim(), content: artContent.trim(), category: artCategory }); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['articles'] }); setArtTitle(''); setArtContent(''); setArtCategory('technique'); toast.success('文章已发布'); },
     onError: () => toast.error('发布失败'),
   });
 
@@ -211,6 +240,8 @@ export function AdminPage() {
                 管理员申请 {pendingApps.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-black text-xs font-bold">{pendingApps.length}</span>}
               </button>
               <button onClick={() => setActiveTab('announcements')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'announcements' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>发布公告</button>
+              <button onClick={() => setActiveTab('events')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'events' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>赛事管理</button>
+              <button onClick={() => setActiveTab('articles')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'articles' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>文章管理</button>
               <button onClick={() => setActiveTab('admins')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'admins' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>管理管理员</button>
             </>
           )}
@@ -319,6 +350,44 @@ export function AdminPage() {
           </div>
         )}
 
+        {activeTab === 'events' && (
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4"><Calendar className="w-5 h-5 text-brand-400 inline mr-2" />赛事管理</h2>
+            <div className="glass rounded-2xl p-5 mb-6">
+              <h3 className="text-sm font-semibold text-white mb-4">添加赛事</h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="block text-xs text-stone-400 mb-1">标题 *</label><input type="text" value={evtTitle} onChange={e => setEvtTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：北京腕力公开赛2025" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">日期 *</label><input type="date" value={evtDate} onChange={e => setEvtDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-500/50 transition-all text-sm" /></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="block text-xs text-stone-400 mb-1">地点</label><input type="text" value={evtLocation} onChange={e => setEvtLocation(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：朝阳区SOHO现代城" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">级别（逗号分隔）</label><input type="text" value={evtClasses} onChange={e => setEvtClasses(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：63kg, 78kg, 95kg" /></div>
+                </div>
+                <div><label className="block text-xs text-stone-400 mb-1">描述</label><textarea value={evtDesc} onChange={e => setEvtDesc(e.target.value)} rows={2} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="赛事详情..." /></div>
+                <div><label className="block text-xs text-stone-400 mb-1">联系方式</label><input type="text" value={evtContact} onChange={e => setEvtContact(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：微信 xxx" /></div>
+                <button onClick={() => addEvent.mutate()} disabled={addEvent.isPending} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold text-sm hover:from-brand-400 transition-all disabled:opacity-50">{addEvent.isPending ? '添加中...' : '添加赛事'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'articles' && (
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4"><BookOpen className="w-5 h-5 text-brand-400 inline mr-2" />发布文章</h2>
+            <div className="glass rounded-2xl p-5">
+              <div className="space-y-4">
+                <div><label className="block text-sm text-stone-400 mb-1.5">标题</label><input type="text" value={artTitle} onChange={e => setArtTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all" placeholder="文章标题" /></div>
+                <div><label className="block text-sm text-stone-400 mb-1.5">分类</label><select value={artCategory} onChange={e => setArtCategory(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-500/50 transition-all">
+                  <option value="technique">💪 技术</option><option value="training">🏋️ 训练</option><option value="nutrition">🍎 营养</option><option value="gear">🧤 装备</option><option value="other">📌 其他</option>
+                </select></div>
+                <div><label className="block text-sm text-stone-400 mb-1.5">内容（支持 Markdown）</label><textarea value={artContent} onChange={e => setArtContent(e.target.value)} rows={10} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all resize-none font-mono text-sm" placeholder="## 技术要点&#10;&#10;第一段内容...&#10;&#10;### 关键技巧&#10;1. 技巧一&#10;2. 技巧二" /></div>
+                <button onClick={() => { if (!artTitle.trim() || !artContent.trim()) { toast.error('请填写标题和内容'); return; } addArticle.mutate(); }} disabled={addArticle.isPending} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">{addArticle.isPending ? '发布中...' : '发布文章'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'admins' && isSuperAdmin && (
           <div>
             <div className="glass rounded-2xl p-5 mb-6">
@@ -330,8 +399,9 @@ export function AdminPage() {
               <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。也可让对方在管理页自行申请。</p>
             <div className="mt-6 pt-6 border-t border-white/5">
               <h3 className="text-sm font-semibold text-white mb-3">🔑 重置用户密码</h3>
-              <div className="flex gap-3"><input type="email" value={pwEmail} onChange={e => setPwEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入用户邮箱" /><button onClick={resetPassword} className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 font-semibold text-sm hover:bg-amber-500/30 transition-all whitespace-nowrap">重置</button></div>
-              <p className="text-xs text-stone-600 mt-2">重置后密码为 wrist123456，通知用户登录后修改。</p>
+              <div className="flex gap-3"><input type="email" value={pwEmail} onChange={e => setPwEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入用户邮箱" /></div>
+              <div className="flex gap-3 mt-2"><input type="text" value={resetPassword} onChange={e => setResetPassword(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="新密码（默认 wrist123456）" /><button onClick={handleResetPassword} className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 font-semibold text-sm hover:bg-amber-500/30 transition-all whitespace-nowrap">重置</button></div>
+              <p className="text-xs text-stone-600 mt-2">默认密码为 wrist123456，也可自定义后通知用户修改。</p>
             </div>
             </div>
             <div className="space-y-2">

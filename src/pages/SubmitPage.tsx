@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Send, CheckCircle, AlertCircle, Upload } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, AlertCircle, Upload, Swords } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES, CITIES } from '@/lib/constants';
@@ -20,6 +21,12 @@ export function SubmitPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [videoInput, setVideoInput] = useState('');
+  const [mode, setMode] = useState<'submit' | 'battle'>('submit');
+  const [battleWinner, setBattleWinner] = useState(''); const [battleLoser, setBattleLoser] = useState('');
+  const [battleHand, setBattleHand] = useState<Hand>('右手'); const [battleEvent, setBattleEvent] = useState('');
+  const [battleNotes, setBattleNotes] = useState('');
 
   useEffect(() => {
     const hash = window.location.hash; const q = new URLSearchParams(hash.split('?')[1] || '');
@@ -46,6 +53,26 @@ export function SubmitPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const { data: allAthletes } = useQuery({
+    queryKey: ['all-athletes-for-battle'],
+    queryFn: async () => { const { data } = await supabase.from('athletes').select('id,name').eq('status', 'approved').order('name'); return (data || []) as { id: number; name: string }[]; },
+    enabled: mode === 'battle',
+  });
+
+  const handleBattle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!battleWinner || !battleLoser) { toast.error('请选择胜负双方'); return; }
+    if (battleWinner === battleLoser) { toast.error('不能选择同一个人'); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('battle_records').insert({
+      winner_id: parseInt(battleWinner), loser_id: parseInt(battleLoser), hand: battleHand,
+      event_name: battleEvent.trim() || '友谊赛', notes: battleNotes.trim() || null,
+      recorded_by: user?.id || null,
+    });
+    if (error) { toast.error('提交失败：' + error.message); return; }
+    toast.success('战绩已记录！'); setBattleWinner(''); setBattleLoser(''); setBattleEvent(''); setBattleNotes('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const missing = []; if (!form.name.trim()) missing.push('姓名'); if (!form.weight_class) missing.push('体重级别'); if (!form.hand) missing.push('惯用手');
@@ -60,12 +87,12 @@ export function SubmitPage() {
         await supabase.storage.from('training-images').upload(path, avatarFile);
         const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
         avatarUrl = publicUrl;
-      } catch (e) { console.error('Photo upload failed:', e); }
+      } catch (e) { toast.error('照片上传失败，请重试'); setIsSubmitting(false); return; }
     }
     const payload = {
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
       hand: form.hand, weight_class: form.weight_class,
-      avatar_url: avatarUrl || (editingId ? avatarPreview : null), city: form.city,
+      avatar_url: avatarUrl || (editingId ? avatarPreview : null), video_urls: videoUrls.length > 0 ? videoUrls : null, city: form.city,
       training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
       bio: form.bio.trim() || null, contact: form.contact.trim() || null,
@@ -76,7 +103,7 @@ export function SubmitPage() {
       : await supabase.from('athletes').insert(payload);
     setIsSubmitting(false);
 
-    if (error) { toast.error('提交失败：' + error.message); setIsSubmitting(false); return; }
+    if (error) { toast.error('提交失败：' + error.message); return; }
     setIsSuccess(true);
     toast.success(editingId ? '修改已提交，待重新审核' : '提交成功！待管理员审核后即可上榜');
   };
@@ -111,9 +138,61 @@ export function SubmitPage() {
         <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-300 transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" />返回首页
         </Link>
-        <h1 className="text-3xl font-bold text-white mb-2">提交运动员信息</h1>
-        <p className="text-stone-500 mb-8">填写以下信息，必填项仅姓名、惯用手、体重级别。信息不完整也可提交，审核通过后可随时补充修改。</p>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">提交</h1>
+            <p className="text-stone-500">填写运动员信息或记录切磋战绩</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setMode('submit')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${mode === 'submit' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}><Send className="w-4 h-4 inline mr-1.5" />提交信息</button>
+            <button onClick={() => setMode('battle')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${mode === 'battle' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}><Swords className="w-4 h-4 inline mr-1.5" />报战绩</button>
+          </div>
+        </div>
 
+        {mode === 'battle' ? (
+          <form onSubmit={handleBattle} className="space-y-6">
+            <div className="glass rounded-2xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4">⚔️ 记录切磋对战</h2>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={labelClass}>胜者（胜方）<span className="text-red-400">*</span></label>
+                  {allAthletes ? (
+                    <select value={battleWinner} onChange={e => setBattleWinner(e.target.value)} className={selectClass}>
+                      <option value="">选择运动员</option>
+                      {(allAthletes as {id:number;name:string}[]).map(a => (<option key={a.id} value={a.id}>{a.name}</option>))}
+                    </select>
+                  ) : <div className="h-11 glass rounded-xl animate-pulse" />}
+                </div>
+                <div>
+                  <label className={labelClass}>败者<span className="text-red-400">*</span></label>
+                  {allAthletes ? (
+                    <select value={battleLoser} onChange={e => setBattleLoser(e.target.value)} className={selectClass}>
+                      <option value="">选择运动员</option>
+                      {(allAthletes as {id:number;name:string}[]).map(a => (<option key={a.id} value={a.id}>{a.name}</option>))}
+                    </select>
+                  ) : <div className="h-11 glass rounded-xl animate-pulse" />}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={labelClass}>惯用手</label>
+                  <select value={battleHand} onChange={e => setBattleHand(e.target.value as Hand)} className={selectClass}>
+                    <option value="右手">✋ 右手</option><option value="左手">🤚 左手</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>赛事名称</label>
+                  <input type="text" value={battleEvent} onChange={e => setBattleEvent(e.target.value)} className={inputClass} placeholder="如：北京腕力公开赛2025" />
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>备注</label>
+                <textarea value={battleNotes} onChange={e => setBattleNotes(e.target.value)} rows={2} className={inputClass + " resize-none"} placeholder="如：2-0 直落（选填）" />
+              </div>
+              <button type="submit" className="mt-4 w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all">⚔️ 记录战绩</button>
+            </div>
+          </form>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className={labelClass}>🖼️ 照片（选填）</label>
@@ -189,6 +268,23 @@ export function SubmitPage() {
               rows={2} className={inputClass + " resize-none"} placeholder="简单介绍自己（选填）" />
           </div>
 
+          <div>
+            <label className={labelClass}>🎬 比赛视频链接</label>
+            <div className="space-y-2 mb-2">
+              {videoUrls.map((url, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-xs text-stone-500 truncate flex-1">{url}</span>
+                  <button type="button" onClick={() => setVideoUrls(prev => prev.filter((_, j) => j !== i))} className="text-xs text-red-400 hover:text-red-300">移除</button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input type="text" value={videoInput} onChange={e => setVideoInput(e.target.value)} className={inputClass} placeholder="粘贴 bilibili / YouTube 链接" />
+              <button type="button" onClick={() => { if (videoInput.trim()) { setVideoUrls(prev => [...prev, videoInput.trim()]); setVideoInput(''); } }} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all shrink-0">添加</button>
+            </div>
+            <p className="text-xs text-stone-600 mt-1">支持 bilibili、YouTube 等平台的视频链接</p>
+          </div>
+
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
             <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <p className="text-sm text-amber-400/80">提交后由管理员审核，审核通过才会显示在排行榜中。请确保信息真实有效。</p>
@@ -202,6 +298,7 @@ export function SubmitPage() {
             {isSubmitting ? '提交中...' : '提交信息'}
           </button>
         </form>
+        )}
       </div>
     </div>
   );

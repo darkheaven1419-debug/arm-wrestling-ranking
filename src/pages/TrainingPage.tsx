@@ -18,7 +18,7 @@ export function TrainingPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
 
-  const startEdit = (loc: any) => {
+  const startEdit = (loc: TrainingLocation) => {
     setName(loc.name); setAddress(loc.address || ''); setContactPerson(loc.contact_person || '');
     setContactPhone(loc.contact_phone || ''); setSchedule(loc.schedule || ''); setDescription(loc.description || '');
     setImagePreview(loc.image_url || ''); setEditingId(loc.id); setShowForm(true);
@@ -130,8 +130,8 @@ export function TrainingPage() {
                 {loc.contact_person && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1"><User className="w-3.5 h-3.5" />{loc.contact_person}{loc.contact_phone && <span className="text-stone-600 ml-2">📞 {loc.contact_phone}</span>}</p>}
                 {loc.schedule && <p className="text-sm text-stone-400 mb-1 flex items-center gap-1">🕐 {loc.schedule}</p>}
                 {loc.description && <p className="text-sm text-stone-500 mt-2 flex items-start gap-1"><FileText className="w-3.5 h-3.5 mt-0.5 shrink-0" />{loc.description}</p>}
-                {(loc as any).status === 'pending' && isAdmin && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">待审核</span>}
-                {isAdmin && (loc as any).status === 'pending' && <div className="flex gap-2 mt-2"><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'approved' })} disabled={approveLocation.isPending} className="text-xs text-emerald-400 hover:text-emerald-300">✓ 通过</button><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'rejected' })} disabled={approveLocation.isPending} className="text-xs text-red-400 hover:text-red-300">✕ 拒绝</button></div>}
+                {loc.status === 'pending' && isAdmin && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">待审核</span>}
+                {isAdmin && loc.status === 'pending' && <div className="flex gap-2 mt-2"><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'approved' })} disabled={approveLocation.isPending} className="text-xs text-emerald-400 hover:text-emerald-300">✓ 通过</button><button onClick={() => approveLocation.mutate({ id: loc.id, status: 'rejected' })} disabled={approveLocation.isPending} className="text-xs text-red-400 hover:text-red-300">✕ 拒绝</button></div>}
                 {isAdmin && <div className="flex gap-3 mt-3"><button onClick={(e) => { e.preventDefault(); startEdit(loc); }} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">✏️ 编辑</button><button onClick={() => deleteLocation.mutate(loc.id)} disabled={deleteLocation.isPending} className="text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button></div>}
               </div>
             </motion.div>

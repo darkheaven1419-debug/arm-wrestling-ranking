@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell } from 'lucide-react';
+import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell, Calendar } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import type { Announcement, Athlete, Hand } from '@/types';
+import type { Announcement, Athlete, ArmEvent, Hand } from '@/types';
+import { getBadgeInfo } from '@/lib/badges';
 import { useState } from 'react';
 
 const GRADIENTS = [
@@ -26,6 +27,11 @@ export function HomePage() {
   const { data: featuredAthletes } = useQuery({
     queryKey: ['featured-athletes'],
     queryFn: async () => { const { data } = await supabase.from('athletes').select('*').eq('status', 'approved').order('rank_score', { ascending: false }).limit(6); return data as Athlete[]; }
+  });
+  const { data: upcomingEvents } = useQuery({
+    queryKey: ['home-events'],
+    queryFn: async () => { const { data } = await supabase.from('events').select('*').gte('event_date', new Date().toISOString().split('T')[0]).order('event_date', { ascending: true }).limit(3); return (data || []) as ArmEvent[]; },
+    retry: false
   });
   const { data: announcements } = useQuery({
     queryKey: ['announcements'],
@@ -117,11 +123,32 @@ export function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {featuredAthletes.slice(0, 6).map(a => (
               <motion.a key={a.id} href={`#/athlete/${a.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-4 text-center hover:scale-105 transition-all cursor-pointer block">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/20 to-violet-500/10 flex items-center justify-center mx-auto mb-3 border border-brand-500/20"><Trophy className="w-5 h-5 text-brand-400" /></div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/20 to-violet-500/10 flex items-center justify-center mx-auto mb-3 border border-brand-500/20"><span className="text-xl">{getBadgeInfo(a.rank_score).icon}</span></div>
                 <p className="text-white text-sm font-bold truncate">{a.name}</p>
                 {a.codename && <p className="text-brand-400 text-xs truncate">{a.codename}</p>}
                 <p className="text-stone-500 text-xs mt-1">{a.weight_class}</p>
               </motion.a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Upcoming Events */}
+      {upcomingEvents && upcomingEvents.length > 0 && (
+        <section className="relative max-w-4xl mx-auto px-4 pb-16">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 justify-center"><Calendar className="w-5 h-5 text-emerald-400" />近期赛事</h2>
+          <div className="space-y-3">
+            {upcomingEvents.map(evt => (
+              <Link key={evt.id} to="/events" className="glass rounded-2xl p-5 flex items-center gap-4 hover:bg-white/[0.06] transition-colors block">
+                <div className="shrink-0 w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center justify-center">
+                  <span className="text-[10px] text-stone-400">{new Date(evt.event_date).toLocaleDateString('zh-CN', { month: 'short' })}</span>
+                  <span className="text-xl font-black text-white">{new Date(evt.event_date).getDate()}</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold">{evt.title}</h3>
+                  {evt.location && <p className="text-xs text-stone-500 mt-0.5">📍 {evt.location}</p>}
+                </div>
+              </Link>
             ))}
           </div>
         </section>

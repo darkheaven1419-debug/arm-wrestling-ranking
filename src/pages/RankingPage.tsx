@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Athlete } from '@/types';
+import { getBadgeInfo } from '@/lib/badges';
 
 export function RankingPage() {
   const { hand, weightClass } = useParams<{ hand: string; weightClass: string }>();
@@ -138,6 +139,9 @@ export function RankingPage() {
                 </div>
 
                 <div className="text-right shrink-0">
+                  <div className="flex items-center gap-1">
+                    {(() => { const badge = getBadgeInfo(athlete.rank_score); return <span className={`text-xs px-1.5 py-0.5 rounded-md ${badge.bgClass} ${badge.borderClass} border`} title={badge.label}>{badge.icon}</span>; })()}
+                  </div>
                   <div className="text-2xl font-black text-brand-400">
                     {athlete.rank_score}
                   </div>
@@ -147,10 +151,13 @@ export function RankingPage() {
             ))}
           </motion.div>
         )}
-        <div className="text-center mt-8">
+        <div className="text-center mt-8 flex gap-3 justify-center flex-wrap">
           <Link to={`/submit?hand=${hand}&class=${weightClass}`}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">
             提交你的运动员信息
+          </Link>
+          <Link to="/compare" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">
+            ⚔️ 运动员对比
           </Link>
         </div>
       </div>
