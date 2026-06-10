@@ -232,6 +232,19 @@ export function AdminPage() {
     onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
+  const linkAthleteUser = useMutation({
+    mutationFn: async ({ athleteId, email }: { athleteId: number; email: string }) => {
+      // Look up user by email via RPC then update athlete
+      const { data: uid, error: rpcErr } = await supabase.rpc('get_user_id_by_email', { target_email: email.trim().toLowerCase() });
+      if (rpcErr) throw new Error(rpcErr.message);
+      if (!uid || (uid as string).startsWith('error:')) throw new Error('未找到该邮箱的用户');
+      const { error } = await supabase.from('athletes').update({ user_id: uid as string }).eq('id', athleteId);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('账号已关联'); },
+    onError: (e: Error) => toast.error(`关联失败: ${e.message}`),
+  });
+
   const updateAdminName = useMutation({
     mutationFn: async ({ id, name }: { id: number; name: string }) => {
       const { error } = await supabase.from('admin_users').update({ display_name: name }).eq('id', id);
@@ -375,6 +388,8 @@ export function AdminPage() {
                       <div className="text-sm flex-1 min-w-0">
                         <span className="text-white font-medium">{a.name}</span>
                         <span className="text-stone-500 ml-3">{a.hand} · {a.weight_class} · {a.city}</span>
+                        {a.user_id && <span className="text-emerald-400 text-xs ml-2">✓已关联</span>}
+                        {!a.user_id && <LinkAccountBtn athlete={a} linkAthleteUser={linkAthleteUser} />}
                       </div>
                       <div className="flex items-center gap-3">
                         <button onClick={() => toggleFeatured.mutate({ id: a.id, featured: !a.is_featured })} disabled={toggleFeatured.isPending} className={`text-xs px-2 py-1 rounded-lg transition-colors ${a.is_featured ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-stone-500 hover:text-stone-300'}`}>
@@ -636,6 +651,28 @@ export function AdminPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function LinkAccountBtn({ athlete, linkAthleteUser }: {
+  athlete: Athlete;
+  linkAthleteUser: { mutate: (v: { athleteId: number; email: string }) => void; isPending: boolean };
+}) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(athlete.contact?.includes('@') ? athlete.contact : '');
+  if (!open) {
+    return <button onClick={() => setOpen(true)} className="text-xs text-amber-400 hover:text-amber-300 ml-2">🔗 关联账号</button>;
+  }
+  return (
+    <span className="inline-flex items-center gap-1 ml-2">
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+        className="w-36 px-2 py-0.5 rounded bg-white/10 border border-brand-500/30 text-white text-xs"
+        placeholder="输入邮箱" autoFocus
+        onKeyDown={e => { if (e.key === 'Enter') { linkAthleteUser.mutate({ athleteId: athlete.id, email }); setOpen(false); } if (e.key === 'Escape') setOpen(false); }} />
+      <button onClick={() => { linkAthleteUser.mutate({ athleteId: athlete.id, email }); setOpen(false); }}
+        className="text-emerald-400 text-xs">✓</button>
+      <button onClick={() => setOpen(false)} className="text-stone-500 text-xs">✕</button>
+    </span>
   );
 }
 
