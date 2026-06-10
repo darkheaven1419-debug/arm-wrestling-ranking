@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Announcement, Athlete, ArmEvent, Hand } from '@/types';
-import { getPowerBadge } from '@/lib/powerLevel';
 import { useState } from 'react';
 
 const GRADIENTS = [
@@ -127,6 +126,9 @@ export function HomePage() {
                 <p className="text-white text-sm font-bold truncate">{a.name}</p>
                 {a.codename && <p className="text-brand-400 text-xs truncate">{a.codename}</p>}
                 <p className="text-stone-500 text-xs mt-1">{a.weight_class}</p>
+                {(a.rank_score ?? 0) > 0 && (
+                  <p className="text-brand-400 text-xs font-bold mt-1">战力 {a.rank_score}</p>
+                )}
               </motion.a>
             ))}
           </div>

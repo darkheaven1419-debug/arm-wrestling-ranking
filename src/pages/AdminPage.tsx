@@ -23,6 +23,7 @@ export function AdminPage() {
   const [evtImages, setEvtImages] = useState<File[]>([]);
   const [evtImagePreviews, setEvtImagePreviews] = useState<string[]>([]);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [editingScores, setEditingScores] = useState<Record<number, number>>({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -103,6 +104,15 @@ export function AdminPage() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); queryClient.invalidateQueries({ queryKey: ['featured-athletes'] }); toast.success('已更新'); },
     onError: () => toast.error('操作失败'),
+  });
+
+  const updateRankScore = useMutation({
+    mutationFn: async ({ id, rank_score }: { id: number; rank_score: number }) => {
+      const { error } = await supabase.from('athletes').update({ rank_score }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('战力分已更新'); },
+    onError: () => toast.error('更新失败'),
   });
 
   const applyAdmin = useMutation({
@@ -334,9 +344,29 @@ export function AdminPage() {
               <div>
                 <h2 className="text-lg font-semibold text-white mb-4"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-2" />已通过 ({approved.length})</h2>
                 <div className="space-y-2">
-                  {approved.map(a => (
+                  {approved.map(a => {
+                    const score = editingScores[a.id] !== undefined ? editingScores[a.id] : null;
+                    return (
                     <div key={a.id} className="glass rounded-xl px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                      <div className="text-sm flex-1 min-w-0"><span className="text-white font-medium">{a.name}</span><span className="text-stone-500 ml-3">{a.hand} · {a.weight_class} · {a.city}</span></div>
+                      <div className="text-sm flex-1 min-w-0">
+                        <span className="text-white font-medium">{a.name}</span>
+                        <span className="text-stone-500 ml-3">{a.hand} · {a.weight_class} · {a.city}</span>
+                        <span className="text-stone-600 ml-3 text-xs">
+                          战力分: {score !== null ? (
+                            <span className="inline-flex items-center gap-1">
+                              <input type="number" value={score} onChange={e => setEditingScores(prev => ({ ...prev, [a.id]: Number(e.target.value) }))}
+                                className="w-14 px-1.5 py-0.5 rounded bg-white/10 border border-brand-500/30 text-white text-xs text-center"
+                                onKeyDown={e => { if (e.key === 'Enter') { updateRankScore.mutate({ id: a.id, rank_score: score }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); } if (e.key === 'Escape') setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }} />
+                              <button onClick={() => { updateRankScore.mutate({ id: a.id, rank_score: score }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }} className="text-emerald-400 hover:text-emerald-300">✓</button>
+                              <button onClick={() => setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; })} className="text-stone-500 hover:text-stone-300">✕</button>
+                            </span>
+                          ) : (
+                            <button onClick={() => setEditingScores(prev => ({ ...prev, [a.id]: a.rank_score ?? 0 }))} className="text-brand-400 hover:text-brand-300 font-bold">
+                              {a.rank_score ?? 0}
+                            </button>
+                          )}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-3">
                         <button onClick={() => toggleFeatured.mutate({ id: a.id, featured: !a.is_featured })} disabled={toggleFeatured.isPending} className={`text-xs px-2 py-1 rounded-lg transition-colors ${a.is_featured ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-stone-500 hover:text-stone-300'}`}>
                           {a.is_featured ? '⭐ 已精选' : '☆ 设为精选'}
@@ -344,7 +374,8 @@ export function AdminPage() {
                         <a href={`#/submit?edit=${a.id}`} className="text-xs text-blue-400 hover:text-blue-300 transition-colors mr-3">✏️ 编辑</a><button onClick={() => updateStatus.mutate({ id: a.id, status: 'pending' })} className="text-xs text-stone-600 hover:text-stone-400 transition-colors">撤销</button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

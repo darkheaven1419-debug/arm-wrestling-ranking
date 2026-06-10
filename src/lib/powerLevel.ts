@@ -27,3 +27,12 @@ export function getPowerBadge(powerLevel: number): PowerBadge {
   if (powerLevel >= 50) return { tier: 'silver', icon: '🥈', label: '白银', color: 'text-stone-300', bgClass: 'bg-stone-500/15', borderClass: 'border-stone-500/30' };
   return { tier: 'bronze', icon: '🥉', label: '青铜', color: 'text-orange-400', bgClass: 'bg-orange-500/10', borderClass: 'border-orange-500/30' };
 }
+
+/**
+ * 根据 rank_score 计算显示用的战力等级
+ * rank_score 为 0 或负数表示未排名，返回无段位状态
+ */
+export function computePowerFromScore(rankScore: number): { powerLevel: number; badge: PowerBadge } {
+  const powerLevel = rankScore > 0 ? Math.min(120, rankScore) : 0;
+  return { powerLevel, badge: getPowerBadge(powerLevel) };
+}

@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ArrowLeft, User, Swords, ArrowLeftRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { getPowerBadge } from '@/lib/powerLevel';
+import { computePowerFromScore } from '@/lib/powerLevel';
 import type { Athlete } from '@/types';
 
 function AthleteCard({ athlete, onRemove }: { athlete: Athlete; onRemove: () => void }) {
-  const badge = getPowerBadge(0); // Default badge for compare view
+  const { powerLevel } = computePowerFromScore(athlete.rank_score ?? 0);
   return (
     <div className="glass rounded-2xl p-6 flex-1 min-w-0">
       <div className="flex items-start gap-4 mb-4">
@@ -18,7 +18,7 @@ function AthleteCard({ athlete, onRemove }: { athlete: Athlete; onRemove: () => 
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-white truncate">{athlete.name}</h2>
           {athlete.codename && <p className="text-brand-400 text-sm">「{athlete.codename}」</p>}
-          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold mt-1.5 ${badge.bgClass} ${badge.borderClass} border ${badge.color}`}>{badge.icon} {badge.label}</div>
+          {powerLevel > 0 && <p className="text-brand-400 text-sm font-bold mt-1">战力值 {powerLevel}</p>}
         </div>
         {onRemove && <button onClick={onRemove} className="text-stone-600 hover:text-stone-400 text-sm">✕</button>}
       </div>

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Athlete } from '@/types';
-import { computePowerLevel, getPowerBadge } from '@/lib/powerLevel';
+import { computePowerLevel } from '@/lib/powerLevel';
 
 export function RankingPage() {
   const { hand, weightClass } = useParams<{ hand: string; weightClass: string }>();
@@ -19,7 +19,7 @@ export function RankingPage() {
         .eq('hand', hand)
         .eq('weight_class', weightClass)
         .eq('status', 'approved')
-        .order('created_at', { ascending: true });
+        .order('rank_score', { ascending: false });
 
       if (error) throw error;
       return data as Athlete[];
@@ -90,7 +90,9 @@ export function RankingPage() {
           </div>
         )}
 
-        {!isLoading && athletes && athletes.length > 0 && (
+        {!isLoading && athletes && athletes.length > 0 && (() => {
+          const hasRankings = athletes.some(a => (a.rank_score ?? 0) > 0);
+          return (
           <motion.div className="space-y-3" initial="hidden" animate="visible">
             {athletes.map((athlete, index) => (
               <motion.div
@@ -138,17 +140,19 @@ export function RankingPage() {
                   </div>
                 </div>
 
+                {hasRankings && (
                 <div className="text-right shrink-0">
-                  {(() => { const pl = computePowerLevel(index + 1); const badge = getPowerBadge(pl); return <span className={`text-xs px-1.5 py-0.5 rounded-md ${badge.bgClass} ${badge.borderClass} border`} title={badge.label}>{badge.icon}</span>; })()}
                   <div className="text-2xl font-black text-brand-400">
                     {computePowerLevel(index + 1)}
                   </div>
-                  <div className="text-xs text-stone-600">战力</div>
+                  <div className="text-xs text-stone-500">战力值</div>
                 </div>
+                )}
               </motion.div>
             ))}
           </motion.div>
-        )}
+          );
+        })()}
         <div className="text-center mt-8 flex gap-3 justify-center flex-wrap">
           <Link to={`/submit?hand=${hand}&class=${weightClass}`}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">

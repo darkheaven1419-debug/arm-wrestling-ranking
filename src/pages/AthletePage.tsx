@@ -1,10 +1,10 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User, MapPin, Scale, Trophy } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Scale, Trophy, Swords } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import { getPowerBadge } from '@/lib/powerLevel';
+import { computePowerLevel, computePowerFromScore } from '@/lib/powerLevel';
 import type { Athlete, BattleRecord } from '@/types';
 
 export function AthletePage() {
@@ -13,6 +13,25 @@ export function AthletePage() {
     queryKey: ['athlete', athleteId],
     queryFn: async () => { const { data } = await supabase.from('athletes').select('*').eq('id', athleteId).single(); return data as Athlete | null; },
     enabled: !!athleteId,
+  });
+
+  // Query group ranking to determine this athlete's position
+  const { data: groupRank } = useQuery({
+    queryKey: ['athlete-group-rank', athlete?.hand, athlete?.weight_class],
+    queryFn: async () => {
+      if (!athlete) return null;
+      const { data } = await supabase
+        .from('athletes')
+        .select('id, name, rank_score')
+        .eq('hand', athlete.hand)
+        .eq('weight_class', athlete.weight_class)
+        .eq('status', 'approved')
+        .order('rank_score', { ascending: false });
+      if (!data) return null;
+      const position = data.findIndex(a => a.id === athlete.id) + 1;
+      return { position, total: data.length };
+    },
+    enabled: !!athlete,
   });
 
   const { data: battles } = useQuery({
@@ -29,6 +48,8 @@ export function AthletePage() {
   if (!athlete) return <div className="pt-24 text-center"><p className="text-stone-500">运动员不存在</p></div>;
 
   const wc = WEIGHT_CLASSES.find(w => w.value === athlete.weight_class);
+  const rank = groupRank?.position ?? null;
+  const powerLevel = rank ? computePowerLevel(rank) : computePowerFromScore(athlete.rank_score ?? 0).powerLevel;
 
   return (
     <div className="pt-24 pb-20 px-4"><div className="max-w-2xl mx-auto">
@@ -50,7 +71,20 @@ export function AthletePage() {
             </div>
           </div>
           <div className="text-center shrink-0">
-            {athlete.is_featured && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400">⭐ 精选</span>}
+            {/* Power Level */}
+            <div className="glass rounded-2xl px-5 py-3">
+              <div className="text-3xl font-black text-brand-400">{powerLevel}</div>
+              <div className="text-xs text-stone-500">战力值</div>
+            </div>
+            {rank && (
+              <p className="text-xs text-stone-500 mt-1.5">
+                组内排名 <span className="text-white font-bold">#{rank}</span> / {groupRank?.total}
+              </p>
+            )}
+            {(athlete.rank_score ?? 0) > 0 && (
+              <p className="text-xs text-stone-600 mt-0.5">Rank Score: {athlete.rank_score}</p>
+            )}
+            {athlete.is_featured && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 mt-2 inline-block">⭐ 精选</span>}
           </div>
         </div>
 
@@ -72,7 +106,7 @@ export function AthletePage() {
         {/* Battle records */}
         {battles && battles.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-stone-400 mb-2">⚔️ 切磋战绩</h3>
+            <h3 className="text-sm font-semibold text-stone-400 mb-2 flex items-center gap-2"><Swords className="w-4 h-4 text-brand-400" />切磋战绩</h3>
             <div className="text-xs text-white mb-2">
               {(() => {
                 const wins = battles.filter(b => b.winner_id === athlete.id).length;
