@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, MapPin, Users, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign, Gift, Phone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { ArmEvent } from '@/types';
 
@@ -81,8 +81,21 @@ export function EventsPage() {
                           <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{evt.weight_classes.join(' · ')}</span>
                         )}
                       </div>
-                      {evt.description && <p className="text-sm text-stone-500 mt-3 leading-relaxed">{evt.description}</p>}
-                      {evt.contact_info && <p className="text-xs text-stone-600 mt-2">📞 联系：{evt.contact_info}</p>}
+                      <div className="flex items-center gap-4 text-sm flex-wrap mt-2">
+                        {evt.registration_fee && (
+                          <span className="flex items-center gap-1 text-amber-400"><DollarSign className="w-3.5 h-3.5" />报名费：{evt.registration_fee}</span>
+                        )}
+                        {evt.prizes && (
+                          <span className="flex items-center gap-1 text-emerald-400"><Gift className="w-3.5 h-3.5" />{evt.prizes.split('\n')[0]}</span>
+                        )}
+                        {evt.contact_person && (
+                          <span className="flex items-center gap-1 text-stone-300"><Phone className="w-3.5 h-3.5" />报名：{evt.contact_person}</span>
+                        )}
+                      </div>
+                      {evt.prizes && evt.prizes.includes('\n') && (
+                        <p className="text-xs text-stone-500 mt-2 leading-relaxed whitespace-pre-line">{evt.prizes}</p>
+                      )}
+                      {evt.description && <p className="text-sm text-stone-500 mt-2 leading-relaxed">{evt.description}</p>}
                     </div>
                   </div>
                 </motion.div>

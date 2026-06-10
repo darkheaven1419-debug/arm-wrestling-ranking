@@ -19,6 +19,8 @@ export function AdminPage() {
   const [evtTitle, setEvtTitle] = useState(''); const [evtDate, setEvtDate] = useState('');
   const [evtLocation, setEvtLocation] = useState(''); const [evtDesc, setEvtDesc] = useState('');
   const [evtClasses, setEvtClasses] = useState(''); const [evtContact, setEvtContact] = useState('');
+  const [evtFee, setEvtFee] = useState(''); const [evtPrizes, setEvtPrizes] = useState('');
+  const [evtContactPerson, setEvtContactPerson] = useState('');
   const [artTitle, setArtTitle] = useState(''); const [artContent, setArtContent] = useState('');
   const [artCategory, setArtCategory] = useState('technique');
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -176,8 +178,10 @@ export function AdminPage() {
 
   const addEvent = useMutation({
     mutationFn: async () => {
-      if (!evtTitle.trim() || !evtDate) { toast.error('请填写标题和日期'); throw new Error('validation'); }
-      const classes = evtClasses.trim() ? evtClasses.split(',').map(s => s.trim()).filter(Boolean) : null;
+      if (!evtTitle.trim() || !evtDate || !evtClasses.trim() || !evtLocation.trim() || !evtFee.trim() || !evtPrizes.trim() || !evtContactPerson.trim()) {
+        toast.error('请填写所有必填项：赛事名称、级别设置、比赛地点、报名费、奖金奖品、报名联系人'); throw new Error('validation');
+      }
+      const classes = evtClasses.split(',').map(s => s.trim()).filter(Boolean);
       // Upload images
       const uploadedUrls: string[] = [];
       for (const file of evtImages) {
@@ -188,14 +192,15 @@ export function AdminPage() {
         uploadedUrls.push(publicUrl);
       }
       const { error } = await supabase.from('events').insert({
-        title: evtTitle.trim(), event_date: evtDate, location: evtLocation.trim() || null,
+        title: evtTitle.trim(), event_date: evtDate, location: evtLocation.trim(),
         description: evtDesc.trim() || null, weight_classes: classes,
         poster_url: uploadedUrls[0] || null, poster_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
-        contact_info: evtContact.trim() || null
+        contact_info: evtContact.trim() || null,
+        registration_fee: evtFee.trim(), prizes: evtPrizes.trim(), contact_person: evtContactPerson.trim()
       });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); setEvtImages([]); setEvtImagePreviews([]); toast.success('赛事已添加'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson(''); setEvtImages([]); setEvtImagePreviews([]); toast.success('赛事已添加'); },
     onError: (e: Error) => { if (e.message !== 'validation') toast.error('添加失败'); },
   });
 
@@ -402,16 +407,30 @@ export function AdminPage() {
                     }} className="hidden" />
                   </label>
                 </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><label className="block text-xs text-stone-400 mb-1">标题 *</label><input type="text" value={evtTitle} onChange={e => setEvtTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：北京腕力公开赛2025" /></div>
-                  <div><label className="block text-xs text-stone-400 mb-1">日期 *</label><input type="date" value={evtDate} onChange={e => setEvtDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-500/50 transition-all text-sm" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">赛事名称 <span className="text-red-400">*</span></label><input type="text" value={evtTitle} onChange={e => setEvtTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：北京腕力公开赛2025" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">比赛日期</label><input type="date" value={evtDate} onChange={e => setEvtDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-500/50 transition-all text-sm" /></div>
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">级别设置 <span className="text-red-400">*</span></label>
+                  <input type="text" value={evtClasses} onChange={e => setEvtClasses(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：63kg, 78kg, 95kg（逗号分隔）" />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">比赛地点 <span className="text-red-400">*</span></label>
+                  <input type="text" value={evtLocation} onChange={e => setEvtLocation(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：朝阳区SOHO现代城" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><label className="block text-xs text-stone-400 mb-1">地点</label><input type="text" value={evtLocation} onChange={e => setEvtLocation(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：朝阳区SOHO现代城" /></div>
-                  <div><label className="block text-xs text-stone-400 mb-1">级别（逗号分隔）</label><input type="text" value={evtClasses} onChange={e => setEvtClasses(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：63kg, 78kg, 95kg" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">报名费 <span className="text-red-400">*</span></label><input type="text" value={evtFee} onChange={e => setEvtFee(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：50元/人" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">报名联系人 <span className="text-red-400">*</span></label><input type="text" value={evtContactPerson} onChange={e => setEvtContactPerson(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：张教练 微信xxx" /></div>
                 </div>
-                <div><label className="block text-xs text-stone-400 mb-1">描述</label><textarea value={evtDesc} onChange={e => setEvtDesc(e.target.value)} rows={2} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="赛事详情..." /></div>
-                <div><label className="block text-xs text-stone-400 mb-1">联系方式</label><input type="text" value={evtContact} onChange={e => setEvtContact(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：微信 xxx" /></div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">奖金奖品设置 <span className="text-red-400">*</span></label>
+                  <textarea value={evtPrizes} onChange={e => setEvtPrizes(e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="如：第一名 ¥1500 + 奖杯&#10;第二名 ¥800 + 奖牌&#10;第三名 ¥500 + 奖牌" /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="block text-xs text-stone-400 mb-1">其他联系方式</label><input type="text" value={evtContact} onChange={e => setEvtContact(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：微信 xxx（可选）" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">赛事描述（可选）</label><input type="text" value={evtDesc} onChange={e => setEvtDesc(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="简短描述..." /></div>
+                </div>
                 <button onClick={() => addEvent.mutate()} disabled={addEvent.isPending} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold text-sm hover:from-brand-400 transition-all disabled:opacity-50">{addEvent.isPending ? '添加中...' : '添加赛事'}</button>
               </div>
             </div>

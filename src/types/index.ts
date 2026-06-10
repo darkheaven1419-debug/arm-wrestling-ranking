@@ -59,6 +59,9 @@ export interface ArmEvent {
   poster_url: string | null;
   poster_urls?: string[];
   contact_info: string | null;
+  registration_fee: string | null;
+  prizes: string | null;
+  contact_person: string | null;
   created_at: string;
 }
 
