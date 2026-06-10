@@ -202,7 +202,7 @@ export function SubmitPage() {
               <label className="flex items-center justify-center gap-2 w-24 h-24 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500"><Upload className="w-5 h-5" /><input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)); } }} className="hidden" /></label>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>姓名 <span className="text-red-400">*</span></label>
               <input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)}
@@ -215,7 +215,7 @@ export function SubmitPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>性别</label>
               <select value={form.gender} onChange={(e) => updateField('gender', e.target.value)} className={selectClass}>
@@ -229,7 +229,7 @@ export function SubmitPage() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>体重级别 <span className="text-red-400">*</span></label>
               <select value={form.weight_class} onChange={(e) => updateField('weight_class', e.target.value as WeightClass)} className={selectClass}>

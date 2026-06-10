@@ -42,8 +42,8 @@ export function HomePage() {
   return (
     <div className="relative">
       {/* Animated background orbs */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-brand-500/10 rounded-full blur-[80px] animate-pulse pointer-events-none" />
-      <div className="absolute top-60 right-10 w-96 h-96 bg-violet-500/8 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-20 left-0 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 bg-brand-500/10 rounded-full blur-[60px] sm:blur-[80px] animate-pulse pointer-events-none" />
+      <div className="absolute top-60 right-0 sm:right-10 w-64 sm:w-96 h-64 sm:h-96 bg-violet-500/8 rounded-full blur-[60px] sm:blur-[100px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
 
       {/* Hero */}
       <section className="relative pt-28 sm:pt-36 pb-16 px-4 overflow-hidden">
@@ -54,7 +54,7 @@ export function HomePage() {
             </div>
           </motion.div>
 
-          <motion.h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-none mb-6 tracking-tight" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}>
+          <motion.h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-none mb-6 tracking-tight" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}>
             <span className="text-gradient">北京腕力</span><br />
             <span className="text-white">排行榜</span>
           </motion.h1>

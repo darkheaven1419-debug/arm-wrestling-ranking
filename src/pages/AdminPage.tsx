@@ -291,9 +291,9 @@ export function AdminPage() {
           <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-stone-400 hover:text-white hover:bg-white/10 transition-all"><LogOut className="w-4 h-4" />退出</button>
         </div>
 
-        <div className="flex gap-3 mb-8 flex-wrap">
-          <button onClick={() => setActiveTab('review')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'review' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>审核运动员</button>
-          <button onClick={() => setActiveTab('ranking')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'ranking' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>🏆 排名设置</button>
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <button onClick={() => setActiveTab('review')} className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${activeTab === 'review' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>审核运动员</button>
+          <button onClick={() => setActiveTab('ranking')} className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${activeTab === 'ranking' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>🏆 排名设置</button>
           {isSuperAdmin && (
             <>
               <button onClick={() => setActiveTab('applications')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${activeTab === 'applications' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>

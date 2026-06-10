@@ -30,7 +30,7 @@ export function Header() {
             group-hover:bg-brand-500/30 transition-colors">
             <Dumbbell className="w-5 h-5 text-brand-400" />
           </div>
-          <span className="text-lg font-bold text-white tracking-wide">
+          <span className="text-base sm:text-lg font-bold text-white tracking-wide truncate max-w-[140px] sm:max-w-none">
             {SITE_NAME}
           </span>
         </Link>

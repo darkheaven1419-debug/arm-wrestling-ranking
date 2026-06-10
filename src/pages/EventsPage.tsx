@@ -48,7 +48,7 @@ function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void 
           </div>
         )}
 
-        <div className="p-6 sm:p-8">
+        <div className="p-5 sm:p-8 safe-bottom">
           <div className="mb-6">
             <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-400 border border-brand-500/30 mb-3">
               {new Date(event.event_date) >= new Date() ? '即将举行' : '已结束'}
