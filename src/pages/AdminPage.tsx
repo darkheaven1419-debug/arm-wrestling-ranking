@@ -222,6 +222,15 @@ export function AdminPage() {
     onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
+  const updateAdminName = useMutation({
+    mutationFn: async ({ id, name }: { id: number; name: string }) => {
+      const { error } = await supabase.from('admin_users').update({ display_name: name }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('名字已更新'); },
+    onError: (e: Error) => toast.error(`更新失败: ${e.message}`),
+  });
+
   // Events query
   const { data: adminEvents } = useQuery({
     queryKey: ['admin-events'],
@@ -611,16 +620,49 @@ export function AdminPage() {
             </div>
             <div className="space-y-2">
               {adminUsers?.map(admin => (
-                <div key={admin.id} className="glass rounded-xl px-5 py-3 flex items-center justify-between">
-                  <span className="text-white text-sm">{admin.role === 'super_admin' ? '👑 负责人' : '🛡️ 管理员'}{admin.display_name && <span className="text-stone-400 ml-2">— {admin.display_name}</span>}</span>
-                  {admin.role !== 'super_admin' && <button onClick={() => removeAdmin.mutate(admin.id)} disabled={removeAdmin.isPending} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"><Trash2 className="w-3 h-3" />移除</button>}
-                </div>
+                <AdminRow key={admin.id} admin={admin} removeAdmin={removeAdmin} updateAdminName={updateAdminName} />
               ))}
               {(!adminUsers || adminUsers.length === 0) && <p className="text-center text-stone-600 py-8">暂无</p>}
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AdminRow({ admin, removeAdmin, updateAdminName }: {
+  admin: AdminUser;
+  removeAdmin: { mutate: (id: number) => void; isPending: boolean };
+  updateAdminName: { mutate: (v: { id: number; name: string }) => void; isPending: boolean };
+}) {
+  const [editing, setEditing] = useState(false);
+  const [nameVal, setNameVal] = useState(admin.display_name || '');
+  return (
+    <div className="glass rounded-xl px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <span className="text-white text-sm">
+        {admin.role === 'super_admin' ? '👑 负责人' : '🛡️ 管理员'}
+        {editing ? (
+          <span className="inline-flex items-center gap-1 ml-2">
+            <input type="text" value={nameVal} onChange={e => setNameVal(e.target.value)}
+              className="w-24 px-2 py-0.5 rounded bg-white/10 border border-brand-500/30 text-white text-xs"
+              autoFocus onKeyDown={e => { if (e.key === 'Enter') { updateAdminName.mutate({ id: admin.id, name: nameVal }); setEditing(false); } if (e.key === 'Escape') setEditing(false); }} />
+            <button onClick={() => { updateAdminName.mutate({ id: admin.id, name: nameVal }); setEditing(false); }} className="text-emerald-400 text-xs">✓</button>
+            <button onClick={() => setEditing(false)} className="text-stone-500 text-xs">✕</button>
+          </span>
+        ) : (
+          <button onClick={() => { setNameVal(admin.display_name || ''); setEditing(true); }}
+            className={`ml-2 ${admin.display_name ? 'text-stone-300' : 'text-stone-600 hover:text-stone-400'}`}>
+            {admin.display_name || '点击设置名字'}
+          </button>
+        )}
+      </span>
+      {admin.role !== 'super_admin' && (
+        <button onClick={() => removeAdmin.mutate(admin.id)} disabled={removeAdmin.isPending}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50">
+          <Trash2 className="w-3 h-3" />移除
+        </button>
+      )}
     </div>
   );
 }
