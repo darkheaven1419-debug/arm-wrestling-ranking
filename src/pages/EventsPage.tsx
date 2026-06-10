@@ -1,25 +1,130 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, MapPin, Users, Clock, DollarSign, Gift, Phone } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Calendar, MapPin, Users, DollarSign, Gift, Phone, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { ArmEvent } from '@/types';
 
+function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void }) {
+  const [imgIndex, setImgIndex] = useState(0);
+  const images = event.poster_urls?.length ? event.poster_urls : (event.poster_url ? [event.poster_url] : []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-stone-900/95 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 flex items-center justify-center transition-colors z-10">
+          <X className="w-4 h-4" />
+        </button>
+
+        {images.length > 0 && (
+          <div className="relative">
+            <img src={images[imgIndex]} alt="" className="w-full h-56 sm:h-72 object-cover rounded-t-3xl" />
+            {images.length > 1 && (
+              <>
+                <button onClick={() => setImgIndex(i => (i - 1 + images.length) % images.length)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button onClick={() => setImgIndex(i => (i + 1) % images.length)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {images.map((_, i) => (
+                    <span key={i} className={`w-2 h-2 rounded-full transition-all ${i === imgIndex ? 'bg-white w-4' : 'bg-white/40'}`} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="p-6 sm:p-8">
+          <div className="mb-6">
+            <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-400 border border-brand-500/30 mb-3">
+              {new Date(event.event_date) >= new Date() ? '即将举行' : '已结束'}
+            </span>
+            <h2 className="text-2xl font-black text-white mb-1">{event.title}</h2>
+            <p className="text-stone-400 text-sm flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              {new Date(event.event_date).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            {event.location && (
+              <div className="glass rounded-xl p-4">
+                <div className="flex items-center gap-2 text-stone-400 text-xs mb-1"><MapPin className="w-3.5 h-3.5" />比赛地点</div>
+                <p className="text-white text-sm font-semibold">{event.location}</p>
+              </div>
+            )}
+            {event.weight_classes && event.weight_classes.length > 0 && (
+              <div className="glass rounded-xl p-4">
+                <div className="flex items-center gap-2 text-stone-400 text-xs mb-1"><Users className="w-3.5 h-3.5" />比赛级别</div>
+                <p className="text-white text-sm font-semibold">{event.weight_classes.join(' · ')}</p>
+              </div>
+            )}
+            {event.registration_fee && (
+              <div className="glass rounded-xl p-4">
+                <div className="flex items-center gap-2 text-stone-400 text-xs mb-1"><DollarSign className="w-3.5 h-3.5" />报名费</div>
+                <p className="text-amber-400 text-sm font-semibold">{event.registration_fee}</p>
+              </div>
+            )}
+            {event.contact_person && (
+              <div className="glass rounded-xl p-4">
+                <div className="flex items-center gap-2 text-stone-400 text-xs mb-1"><Phone className="w-3.5 h-3.5" />报名联系人</div>
+                <p className="text-white text-sm font-semibold">{event.contact_person}</p>
+              </div>
+            )}
+          </div>
+
+          {event.prizes && (
+            <div className="mb-6">
+              <h3 className="flex items-center gap-2 text-stone-400 text-xs mb-3"><Gift className="w-3.5 h-3.5" />奖金奖品</h3>
+              <div className="glass rounded-xl p-5 text-sm text-white leading-relaxed whitespace-pre-line">{event.prizes}</div>
+            </div>
+          )}
+
+          {event.description && (
+            <div className="mb-6">
+              <h3 className="text-stone-400 text-xs mb-2">赛事详情</h3>
+              <p className="text-stone-300 text-sm leading-relaxed">{event.description}</p>
+            </div>
+          )}
+
+          {event.contact_info && (
+            <p className="text-xs text-stone-500 pt-4 border-t border-white/5">📞 {event.contact_info}</p>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function EventsPage() {
+  const [selectedEvent, setSelectedEvent] = useState<ArmEvent | null>(null);
   const { data: events, isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('event_date', { ascending: true });
-      if (error) throw error;
-      return data as ArmEvent[];
+      const { data } = await supabase.from('events').select('*').order('event_date', { ascending: true });
+      return (data || []) as ArmEvent[];
     },
   });
 
   const upcoming = events?.filter((e) => new Date(e.event_date) >= new Date()) ?? [];
   const past = events?.filter((e) => new Date(e.event_date) < new Date()) ?? [];
+
+  const hasPoster = (e: ArmEvent) => !!(e.poster_url || (e.poster_urls && e.poster_urls.length > 0));
+  const getPoster = (e: ArmEvent) => (e.poster_urls?.length ? e.poster_urls[0] : e.poster_url) ?? '';
 
   return (
     <div className="pt-24 pb-20 px-4">
@@ -54,49 +159,49 @@ export function EventsPage() {
         {upcoming.length > 0 && (
           <div className="mb-12">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              即将举行 ({upcoming.length})
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />即将举行 ({upcoming.length})
             </h2>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {upcoming.map((evt) => (
                 <motion.div key={evt.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                  className="glass rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
-                  <div className="flex gap-5 flex-wrap">
-                    <div className="shrink-0 w-16 h-16 rounded-xl bg-brand-500/10 border border-brand-500/20 flex flex-col items-center justify-center">
-                      <span className="text-xs text-stone-400">
-                        {new Date(evt.event_date).toLocaleDateString('zh-CN', { month: 'short' })}
-                      </span>
-                      <span className="text-2xl font-black text-white">
-                        {new Date(evt.event_date).getDate()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-white mb-2">{evt.title}</h3>
-                      <div className="flex items-center gap-4 text-sm text-stone-400 flex-wrap">
-                        {evt.location && (
-                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{evt.location}</span>
-                        )}
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{new Date(evt.event_date).toLocaleDateString('zh-CN', { weekday: 'long' })}</span>
-                        {evt.weight_classes && evt.weight_classes.length > 0 && (
-                          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{evt.weight_classes.join(' · ')}</span>
-                        )}
+                  onClick={() => setSelectedEvent(evt)}
+                  className="glass rounded-2xl overflow-hidden hover:bg-white/[0.06] transition-all cursor-pointer group hover:border-brand-500/20">
+                  {hasPoster(evt) ? (
+                    <div className="relative h-40 overflow-hidden">
+                      <img src={getPoster(evt)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent" />
+                      <div className="absolute bottom-3 left-4 flex items-center gap-3">
+                        <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-500/90 flex flex-col items-center justify-center">
+                          <span className="text-[10px] text-white/70">{new Date(evt.event_date).toLocaleDateString('zh-CN', { month: 'short' })}</span>
+                          <span className="text-lg font-black text-white">{new Date(evt.event_date).getDate()}</span>
+                        </div>
+                        <div>
+                          <h3 className="text-white font-bold text-lg drop-shadow-lg">{evt.title}</h3>
+                          {evt.location && <p className="text-white/70 text-xs drop-shadow">{evt.location}</p>}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm flex-wrap mt-2">
-                        {evt.registration_fee && (
-                          <span className="flex items-center gap-1 text-amber-400"><DollarSign className="w-3.5 h-3.5" />报名费：{evt.registration_fee}</span>
-                        )}
-                        {evt.prizes && (
-                          <span className="flex items-center gap-1 text-emerald-400"><Gift className="w-3.5 h-3.5" />{evt.prizes.split('\n')[0]}</span>
-                        )}
-                        {evt.contact_person && (
-                          <span className="flex items-center gap-1 text-stone-300"><Phone className="w-3.5 h-3.5" />报名：{evt.contact_person}</span>
-                        )}
-                      </div>
-                      {evt.prizes && evt.prizes.includes('\n') && (
-                        <p className="text-xs text-stone-500 mt-2 leading-relaxed whitespace-pre-line">{evt.prizes}</p>
-                      )}
-                      {evt.description && <p className="text-sm text-stone-500 mt-2 leading-relaxed">{evt.description}</p>}
                     </div>
+                  ) : (
+                    <div className="p-5">
+                      <div className="flex gap-4">
+                        <div className="shrink-0 w-14 h-14 rounded-xl bg-brand-500/10 border border-brand-500/20 flex flex-col items-center justify-center">
+                          <span className="text-[10px] text-stone-400">{new Date(evt.event_date).toLocaleDateString('zh-CN', { month: 'short' })}</span>
+                          <span className="text-xl font-black text-white">{new Date(evt.event_date).getDate()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-bold text-white mb-1 group-hover:text-brand-300 transition-colors">{evt.title}</h3>
+                          <div className="flex items-center gap-3 text-xs text-stone-400 flex-wrap">
+                            {evt.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{evt.location}</span>}
+                            {evt.weight_classes && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{evt.weight_classes.join(' · ')}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="px-5 pb-4 flex items-center gap-4 text-xs flex-wrap">
+                    {evt.registration_fee && <span className="text-amber-400 flex items-center gap-1"><DollarSign className="w-3 h-3" />{evt.registration_fee}</span>}
+                    {evt.prizes && <span className="text-emerald-400 flex items-center gap-1 truncate max-w-[160px]"><Gift className="w-3 h-3 shrink-0" />{evt.prizes.split('\n')[0]}</span>}
+                    <span className="text-brand-400 ml-auto group-hover:translate-x-1 transition-transform text-xs">查看详情 →</span>
                   </div>
                 </motion.div>
               ))}
@@ -107,24 +212,28 @@ export function EventsPage() {
         {past.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-stone-600 inline-block" />
-              已结束 ({past.length})
+              <span className="w-2 h-2 rounded-full bg-stone-600 inline-block" />已结束 ({past.length})
             </h2>
-            <div className="space-y-3 opacity-60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-60">
               {past.map((evt) => (
-                <div key={evt.id} className="glass rounded-xl p-4 flex items-center gap-4">
-                  <div className="shrink-0 text-xs text-stone-500 w-20 text-center">
-                    {new Date(evt.event_date).toLocaleDateString('zh-CN')}
+                <motion.div key={evt.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  onClick={() => setSelectedEvent(evt)}
+                  className="glass rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex">
+                  {hasPoster(evt) && <div className="w-20 h-20 shrink-0"><img src={getPoster(evt)} alt="" className="w-full h-full object-cover" /></div>}
+                  <div className="p-3 flex-1 min-w-0">
+                    <h3 className="text-white text-sm font-semibold truncate">{evt.title}</h3>
+                    <p className="text-stone-500 text-xs mt-0.5">{new Date(evt.event_date).toLocaleDateString('zh-CN')}</p>
+                    {evt.location && <p className="text-stone-600 text-xs mt-0.5 truncate">{evt.location}</p>}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-white font-semibold">{evt.title}</h3>
-                    {evt.location && <p className="text-xs text-stone-500 mt-0.5">{evt.location}</p>}
-                  </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
         )}
+
+        <AnimatePresence>
+          {selectedEvent && <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+        </AnimatePresence>
       </div>
     </div>
   );
