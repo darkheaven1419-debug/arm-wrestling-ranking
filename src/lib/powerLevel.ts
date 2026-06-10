@@ -1,13 +1,13 @@
 /**
  * 战力值系统：按每个级别（惯用手 × 体重级别）内排名计算战力值
- * 第1名=120, 第2名=100, 第3名=90, 第4名=80, 之后每降1名-5
+ * 第1名=120, 第2名=100, 第3名=90, 第4名=80, 之后每降1名-5, 最低不低于10
  */
 export function computePowerLevel(rank: number): number {
   if (rank === 1) return 120;
   if (rank === 2) return 100;
   if (rank === 3) return 90;
   if (rank === 4) return 80;
-  return Math.max(0, 80 - (rank - 4) * 5);
+  return Math.max(10, 80 - (rank - 4) * 5);
 }
 
 /** 战力值对应的段位徽章 */
