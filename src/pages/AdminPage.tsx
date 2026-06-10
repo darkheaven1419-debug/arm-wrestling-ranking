@@ -97,7 +97,7 @@ export function AdminPage() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('已更新'); },
-    onError: () => toast.error('操作失败'),
+    onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
   const toggleFeatured = useMutation({
@@ -106,7 +106,7 @@ export function AdminPage() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); queryClient.invalidateQueries({ queryKey: ['featured-athletes'] }); toast.success('已更新'); },
-    onError: () => toast.error('操作失败'),
+    onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
   const updateRankScore = useMutation({
@@ -115,7 +115,7 @@ export function AdminPage() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('排名已更新'); },
-    onError: () => toast.error('更新失败'),
+    onError: (e: Error) => toast.error(`更新失败: ${e.message}`),
   });
 
   const applyAdmin = useMutation({
@@ -145,7 +145,7 @@ export function AdminPage() {
       }
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-applications'] }); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('已处理'); },
-    onError: () => toast.error('操作失败'),
+    onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
   const addAdmin = useMutation({
@@ -174,7 +174,7 @@ export function AdminPage() {
   const addAnnouncement = useMutation({
     mutationFn: async () => { const { error } = await supabase.from('announcements').insert({ title: annTitle.trim(), content: annContent.trim() || null }); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['announcements'] }); setAnnTitle(''); setAnnContent(''); toast.success('公告已发布'); },
-    onError: () => toast.error('发布失败'),
+    onError: (e: Error) => toast.error(`发布失败: ${e.message}`),
   });
 
   const addEvent = useMutation({
@@ -208,13 +208,13 @@ export function AdminPage() {
   const addArticle = useMutation({
     mutationFn: async () => { const { error } = await supabase.from('articles').insert({ title: artTitle.trim(), content: artContent.trim(), category: artCategory }); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['articles'] }); setArtTitle(''); setArtContent(''); setArtCategory('technique'); toast.success('文章已发布'); },
-    onError: () => toast.error('发布失败'),
+    onError: (e: Error) => toast.error(`发布失败: ${e.message}`),
   });
 
   const removeAdmin = useMutation({
     mutationFn: async (id: number) => { const { error } = await supabase.from('admin_users').delete().eq('id', id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('已移除'); },
-    onError: () => toast.error('操作失败'),
+    onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
   // Events query
@@ -230,16 +230,17 @@ export function AdminPage() {
   const deleteEvent = useMutation({
     mutationFn: async (id: number) => { const { error } = await supabase.from('events').delete().eq('id', id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-events'] }); queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); toast.success('赛事已删除'); },
-    onError: () => toast.error('删除失败'),
+    onError: (e: Error) => toast.error(`删除失败: ${e.message}`),
   });
 
   const updateEvent = useMutation({
     mutationFn: async (evt: Partial<ArmEvent> & { id: number }) => {
-      const { error } = await supabase.from('events').update(evt).eq('id', evt.id);
+      const { id, ...data } = evt;
+      const { error } = await supabase.from('events').update(data).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-events'] }); queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEditingEventId(null); toast.success('赛事已更新'); },
-    onError: () => toast.error('更新失败'),
+    onError: (e: Error) => toast.error(`更新失败: ${e.message}`),
   });
 
   const handleLogout = async () => { await supabase.auth.signOut(); setSession(false); toast.success('已退出'); };
