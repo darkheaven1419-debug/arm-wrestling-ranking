@@ -201,7 +201,7 @@ export function AdminPage() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson(''); setEvtImages([]); setEvtImagePreviews([]); toast.success('赛事已添加'); },
-    onError: (e: Error) => { if (e.message !== 'validation') toast.error('添加失败'); },
+    onError: (e: Error) => { if (e.message !== 'validation') toast.error(`添加失败: ${e.message}`); },
   });
 
   const addArticle = useMutation({
