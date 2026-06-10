@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, UserPlus, Trash2, Crown, Send, Bell, Calendar, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import { computePowerLevel } from '@/lib/powerLevel';
 import type { Athlete } from '@/types';
 
 interface AdminUser { id: number; user_id: string; role: string; created_at: string; }
@@ -12,7 +13,7 @@ interface AdminApp { id: number; user_id: string; status: string; created_at: st
 
 export function AdminPage() {
   const [session, setSession] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<'review' | 'admins' | 'applications' | 'announcements' | 'events' | 'articles'>('review');
+  const [activeTab, setActiveTab] = useState<'review' | 'ranking' | 'admins' | 'applications' | 'announcements' | 'events' | 'articles'>('review');
   const [annTitle, setAnnTitle] = useState(''); const [annContent, setAnnContent] = useState('');
   const [evtTitle, setEvtTitle] = useState(''); const [evtDate, setEvtDate] = useState('');
   const [evtLocation, setEvtLocation] = useState(''); const [evtDesc, setEvtDesc] = useState('');
@@ -291,6 +292,7 @@ export function AdminPage() {
 
         <div className="flex gap-3 mb-8 flex-wrap">
           <button onClick={() => setActiveTab('review')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'review' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>审核运动员</button>
+          <button onClick={() => setActiveTab('ranking')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'ranking' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>🏆 排名设置</button>
           {isSuperAdmin && (
             <>
               <button onClick={() => setActiveTab('applications')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${activeTab === 'applications' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>
@@ -344,28 +346,11 @@ export function AdminPage() {
               <div>
                 <h2 className="text-lg font-semibold text-white mb-4"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-2" />已通过 ({approved.length})</h2>
                 <div className="space-y-2">
-                  {approved.map(a => {
-                    const score = editingScores[a.id] !== undefined ? editingScores[a.id] : null;
-                    return (
+                  {approved.map(a => (
                     <div key={a.id} className="glass rounded-xl px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
                       <div className="text-sm flex-1 min-w-0">
                         <span className="text-white font-medium">{a.name}</span>
                         <span className="text-stone-500 ml-3">{a.hand} · {a.weight_class} · {a.city}</span>
-                        <span className="text-stone-600 ml-3 text-xs">
-                          排名:{score !== null ? (
-                            <span className="inline-flex items-center gap-1">
-                              <input type="number" value={score} onChange={e => setEditingScores(prev => ({ ...prev, [a.id]: Number(e.target.value) }))}
-                                className="w-14 px-1.5 py-0.5 rounded bg-white/10 border border-brand-500/30 text-white text-xs text-center"
-                                onKeyDown={e => { if (e.key === 'Enter') { updateRankScore.mutate({ id: a.id, rank_score: score }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); } if (e.key === 'Escape') setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }} />
-                              <button onClick={() => { updateRankScore.mutate({ id: a.id, rank_score: score }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }} className="text-emerald-400 hover:text-emerald-300">✓</button>
-                              <button onClick={() => setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; })} className="text-stone-500 hover:text-stone-300">✕</button>
-                            </span>
-                          ) : (
-                            <button onClick={() => setEditingScores(prev => ({ ...prev, [a.id]: a.rank_score ?? 0 }))} className="text-brand-400 hover:text-brand-300 font-bold">
-                              {a.rank_score ?? 0}
-                            </button>
-                          )}
-                        </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <button onClick={() => toggleFeatured.mutate({ id: a.id, featured: !a.is_featured })} disabled={toggleFeatured.isPending} className={`text-xs px-2 py-1 rounded-lg transition-colors ${a.is_featured ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-stone-500 hover:text-stone-300'}`}>
@@ -374,13 +359,16 @@ export function AdminPage() {
                         <a href={`#/submit?edit=${a.id}`} className="text-xs text-blue-400 hover:text-blue-300 transition-colors mr-3">✏️ 编辑</a><button onClick={() => updateStatus.mutate({ id: a.id, status: 'pending' })} className="text-xs text-stone-600 hover:text-stone-400 transition-colors">撤销</button>
                       </div>
                     </div>
-                    );
-                  })}
+                  ))}
                 </div>
               </div>
             )}
             {!athletesLoading && athletes?.length === 0 && <div className="text-center py-16"><p className="text-stone-600">暂无运动员数据</p></div>}
           </>
+        )}
+
+        {activeTab === 'ranking' && (
+          <RankingTab athletes={approved} updateRankScore={updateRankScore} editingScores={editingScores} setEditingScores={setEditingScores} />
         )}
 
         {activeTab === 'applications' && isSuperAdmin && (
@@ -512,6 +500,79 @@ export function AdminPage() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function RankingTab({ athletes, updateRankScore, editingScores, setEditingScores }: {
+  athletes: Athlete[];
+  updateRankScore: { mutate: (v: { id: number; rank_score: number }) => void; isPending: boolean };
+  editingScores: Record<number, number>;
+  setEditingScores: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+}) {
+  // Group athletes by hand + weight_class
+  const groups = new Map<string, Athlete[]>();
+  for (const a of athletes) {
+    const key = `${a.hand} · ${a.weight_class}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(a);
+  }
+  // Sort each group by rank_score
+  for (const [, list] of groups) {
+    list.sort((a, b) => (a.rank_score ?? 999) - (b.rank_score ?? 999));
+  }
+  // Sort groups by name
+  const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold text-white mb-2">🏆 排名设置</h2>
+      <p className="text-xs text-stone-500 mb-6">按级别分组，输入排名数字（1=第1名, 2=第2名...），战力值自动计算。留空或0表示不参与排名。</p>
+      <div className="space-y-6">
+        {sortedGroups.map(([groupName, list]) => (
+          <div key={groupName}>
+            <h3 className="text-sm font-bold text-stone-300 mb-3 px-2">{groupName} ({list.length}人)</h3>
+            <div className="space-y-2">
+              {list.map(a => {
+                const editingVal = editingScores[a.id] !== undefined ? editingScores[a.id] : null;
+                const currentRank = a.rank_score ?? 0;
+                const power = currentRank > 0 ? computePowerLevel(currentRank) : null;
+                return (
+                  <div key={a.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">
+                    <span className="text-white text-sm font-medium min-w-0 truncate flex-1">
+                      {a.name}
+                      {a.codename && <span className="text-brand-400 ml-1.5 text-xs">「{a.codename}」</span>}
+                    </span>
+                    <span className="text-stone-500 text-xs shrink-0">排名</span>
+                    {editingVal !== null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <input type="number" min="0" value={editingVal} onChange={e => setEditingScores(prev => ({ ...prev, [a.id]: Math.max(0, Number(e.target.value)) }))}
+                          className="w-14 px-2 py-1 rounded bg-white/10 border border-brand-500/30 text-white text-sm text-center"
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') { updateRankScore.mutate({ id: a.id, rank_score: editingVal }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }
+                            if (e.key === 'Escape') setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; });
+                          }} />
+                        <button onClick={() => { updateRankScore.mutate({ id: a.id, rank_score: editingVal }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }} className="text-emerald-400 hover:text-emerald-300 text-sm">✓</button>
+                        <button onClick={() => setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; })} className="text-stone-500 hover:text-stone-300 text-sm">✕</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setEditingScores(prev => ({ ...prev, [a.id]: currentRank }))}
+                        className={`text-sm font-bold min-w-[2rem] ${currentRank > 0 ? 'text-brand-400' : 'text-stone-600'}`}>
+                        {currentRank > 0 ? `#${currentRank}` : '未设'}
+                      </button>
+                    )}
+                    <span className="text-xs shrink-0 w-16 text-right">
+                      {power !== null ? <span className="text-brand-400 font-bold">战力 {power}</span> : <span className="text-stone-600">-</span>}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {sortedGroups.length === 0 && <p className="text-center text-stone-600 py-8">暂无已通过的运动员</p>}
       </div>
     </div>
   );
