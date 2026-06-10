@@ -24,7 +24,6 @@ export function AdminPage() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [evtImages, setEvtImages] = useState<File[]>([]);
   const [evtImagePreviews, setEvtImagePreviews] = useState<string[]>([]);
-  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -199,37 +198,6 @@ export function AdminPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); setEvtImages([]); setEvtImagePreviews([]); toast.success('赛事已添加'); },
     onError: (e: Error) => { if (e.message !== 'validation') toast.error('添加失败'); },
   });
-
-  const runOcr = async () => {
-    if (evtImages.length === 0) { toast.error('请先上传赛事海报图片'); return; }
-    setIsOcrProcessing(true);
-    toast('正在识别图片中的信息...', { icon: '🔍', duration: 3000 });
-    try {
-      const Tesseract = (await import('tesseract.js')).default;
-      let allText = '';
-      for (const file of evtImages) {
-        const { data: { text } } = await Tesseract.recognize(file, 'chi_sim+eng');
-        allText += text + '\n';
-      }
-      // Parse recognized text
-      const lines = allText.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length > 0 && !evtTitle) setEvtTitle(lines[0].slice(0, 100));
-      // Try to find date
-      const dateMatch = allText.match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/);
-      if (dateMatch && !evtDate) setEvtDate(dateMatch[1].replace(/[./]/g, '-'));
-      // Try to find location
-      const locMatch = allText.match(/(?:地点|地址|位置)[：:]\s*(.+)/);
-      if (locMatch && !evtLocation) setEvtLocation(locMatch[1].trim().slice(0, 100));
-      // Try to find contact
-      const contactMatch = allText.match(/(?:联系|电话|微信|手机)[：:]\s*(.+)/);
-      if (contactMatch && !evtContact) setEvtContact(contactMatch[1].trim().slice(0, 100));
-      if (!evtDesc) setEvtDesc(allText.slice(0, 300));
-      toast.success('已自动填充，请核对修改');
-    } catch {
-      toast.error('识别失败，请手动填写');
-    }
-    setIsOcrProcessing(false);
-  };
 
   const addArticle = useMutation({
     mutationFn: async () => { const { error } = await supabase.from('articles').insert({ title: artTitle.trim(), content: artContent.trim(), category: artCategory }); if (error) throw error; },
@@ -413,9 +381,9 @@ export function AdminPage() {
             <div className="glass rounded-2xl p-5 mb-6">
               <h3 className="text-sm font-semibold text-white mb-4">添加赛事</h3>
               <div className="space-y-3">
-                {/* Image upload with OCR */}
+                {/* Image upload */}
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">🖼️ 上传海报（支持多张，AI自动识别填充）</label>
+                  <label className="block text-xs text-stone-400 mb-1">🖼️ 上传海报（可选，用于展示）</label>
                   {evtImagePreviews.length > 0 && (
                     <div className="flex gap-2 mb-2 flex-wrap">
                       {evtImagePreviews.map((url, i) => (
@@ -425,21 +393,14 @@ export function AdminPage() {
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500 text-sm">
-                      📁 选择图片
-                      <input type="file" accept="image/*" multiple onChange={e => {
-                        const files = Array.from(e.target.files || []);
-                        setEvtImages(prev => [...prev, ...files]);
-                        setEvtImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
-                      }} className="hidden" />
-                    </label>
-                    <button type="button" onClick={runOcr} disabled={isOcrProcessing || evtImages.length === 0}
-                      className="px-4 py-3 rounded-xl bg-violet-500/20 text-violet-400 font-semibold text-sm hover:bg-violet-500/30 transition-all disabled:opacity-50 whitespace-nowrap">
-                      {isOcrProcessing ? '识别中...' : '🤖 AI识别填充'}
-                    </button>
-                  </div>
-                  <p className="text-xs text-stone-600 mt-1">上传赛事海报后点击AI识别，自动提取标题、日期、地点等信息</p>
+                  <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500 text-sm">
+                    📁 选择海报图片
+                    <input type="file" accept="image/*" multiple onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      setEvtImages(prev => [...prev, ...files]);
+                      setEvtImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+                    }} className="hidden" />
+                  </label>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><label className="block text-xs text-stone-400 mb-1">标题 *</label><input type="text" value={evtTitle} onChange={e => setEvtTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：北京腕力公开赛2025" /></div>
