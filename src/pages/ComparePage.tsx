@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ArrowLeft, User, Swords, ArrowLeftRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { computePowerFromScore } from '@/lib/powerLevel';
+import { computePowerLevel } from '@/lib/powerLevel';
 import type { Athlete } from '@/types';
 
 function AthleteCard({ athlete, onRemove }: { athlete: Athlete; onRemove: () => void }) {
-  const { powerLevel } = computePowerFromScore(athlete.rank_score ?? 0);
+  const powerLevel = (athlete.rank_score ?? 0) > 0 ? computePowerLevel(athlete.rank_score!) : 0;
   return (
     <div className="glass rounded-2xl p-6 flex-1 min-w-0">
       <div className="flex items-start gap-4 mb-4">
@@ -42,7 +42,7 @@ export function ComparePage() {
   const { data: allAthletes } = useQuery({
     queryKey: ['all-athletes-for-compare'],
     queryFn: async () => {
-      const { data } = await supabase.from('athletes').select('id,name,codename,weight_class,hand,body_weight,city,rank_score,achievements,training_spot,avatar_url').eq('status', 'approved').order('rank_score', { ascending: false });
+      const { data } = await supabase.from('athletes').select('id,name,codename,weight_class,hand,body_weight,city,rank_score,achievements,training_spot,avatar_url').eq('status', 'approved').order('rank_score', { ascending: true });
       return data as Athlete[];
     },
   });

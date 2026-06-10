@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, User, MapPin, Scale, Trophy, Swords } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import { computePowerLevel, computePowerFromScore } from '@/lib/powerLevel';
+import { computePowerLevel } from '@/lib/powerLevel';
 import type { Athlete, BattleRecord } from '@/types';
 
 export function AthletePage() {
@@ -26,7 +26,7 @@ export function AthletePage() {
         .eq('hand', athlete.hand)
         .eq('weight_class', athlete.weight_class)
         .eq('status', 'approved')
-        .order('rank_score', { ascending: false });
+        .order('rank_score', { ascending: true });
       if (!data) return null;
       const position = data.findIndex(a => a.id === athlete.id) + 1;
       return { position, total: data.length };
@@ -49,7 +49,7 @@ export function AthletePage() {
 
   const wc = WEIGHT_CLASSES.find(w => w.value === athlete.weight_class);
   const rank = groupRank?.position ?? null;
-  const powerLevel = rank ? computePowerLevel(rank) : computePowerFromScore(athlete.rank_score ?? 0).powerLevel;
+  const powerLevel = rank ? computePowerLevel(rank) : ((athlete.rank_score ?? 0) > 0 ? computePowerLevel(athlete.rank_score!) : 0);
 
   return (
     <div className="pt-24 pb-20 px-4"><div className="max-w-2xl mx-auto">
@@ -80,9 +80,6 @@ export function AthletePage() {
               <p className="text-xs text-stone-500 mt-1.5">
                 组内排名 <span className="text-white font-bold">#{rank}</span> / {groupRank?.total}
               </p>
-            )}
-            {(athlete.rank_score ?? 0) > 0 && (
-              <p className="text-xs text-stone-600 mt-0.5">Rank Score: {athlete.rank_score}</p>
             )}
             {athlete.is_featured && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 mt-2 inline-block">⭐ 精选</span>}
           </div>

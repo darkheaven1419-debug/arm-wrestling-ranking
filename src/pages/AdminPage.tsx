@@ -111,7 +111,7 @@ export function AdminPage() {
       const { error } = await supabase.from('athletes').update({ rank_score }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('战力分已更新'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('排名已更新'); },
     onError: () => toast.error('更新失败'),
   });
 
@@ -352,7 +352,7 @@ export function AdminPage() {
                         <span className="text-white font-medium">{a.name}</span>
                         <span className="text-stone-500 ml-3">{a.hand} · {a.weight_class} · {a.city}</span>
                         <span className="text-stone-600 ml-3 text-xs">
-                          战力分: {score !== null ? (
+                          排名:{score !== null ? (
                             <span className="inline-flex items-center gap-1">
                               <input type="number" value={score} onChange={e => setEditingScores(prev => ({ ...prev, [a.id]: Number(e.target.value) }))}
                                 className="w-14 px-1.5 py-0.5 rounded bg-white/10 border border-brand-500/30 text-white text-xs text-center"

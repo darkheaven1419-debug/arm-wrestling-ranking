@@ -19,7 +19,7 @@ export function RankingPage() {
         .eq('hand', hand)
         .eq('weight_class', weightClass)
         .eq('status', 'approved')
-        .order('rank_score', { ascending: false });
+        .order('rank_score', { ascending: true });
 
       if (error) throw error;
       return data as Athlete[];
