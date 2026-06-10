@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { computePowerLevel } from '@/lib/powerLevel';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import type { Athlete } from '@/types';
+import type { Athlete, ArmEvent } from '@/types';
 
 interface AdminUser { id: number; user_id: string; role: string; created_at: string; }
 interface AdminApp { id: number; user_id: string; status: string; created_at: string; }
@@ -21,6 +21,7 @@ export function AdminPage() {
   const [evtClasses, setEvtClasses] = useState(''); const [evtContact, setEvtContact] = useState('');
   const [evtFee, setEvtFee] = useState(''); const [evtPrizes, setEvtPrizes] = useState('');
   const [evtContactPerson, setEvtContactPerson] = useState('');
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [artTitle, setArtTitle] = useState(''); const [artContent, setArtContent] = useState('');
   const [artCategory, setArtCategory] = useState('technique');
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -216,6 +217,31 @@ export function AdminPage() {
     onError: () => toast.error('操作失败'),
   });
 
+  // Events query
+  const { data: adminEvents } = useQuery({
+    queryKey: ['admin-events'],
+    queryFn: async () => {
+      const { data } = await supabase.from('events').select('*').order('event_date', { ascending: false });
+      return (data || []) as ArmEvent[];
+    },
+    enabled: isAdmin,
+  });
+
+  const deleteEvent = useMutation({
+    mutationFn: async (id: number) => { const { error } = await supabase.from('events').delete().eq('id', id); if (error) throw error; },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-events'] }); queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); toast.success('赛事已删除'); },
+    onError: () => toast.error('删除失败'),
+  });
+
+  const updateEvent = useMutation({
+    mutationFn: async (evt: Partial<ArmEvent> & { id: number }) => {
+      const { error } = await supabase.from('events').update(evt).eq('id', evt.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-events'] }); queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEditingEventId(null); toast.success('赛事已更新'); },
+    onError: () => toast.error('更新失败'),
+  });
+
   const handleLogout = async () => { await supabase.auth.signOut(); setSession(false); toast.success('已退出'); };
 
   if (session === null || roleLoading) {
@@ -380,62 +406,122 @@ export function AdminPage() {
           </div>
         )}
 
-        {activeTab === 'events' && (
+        {activeTab === 'events' && (() => {
+          const events = adminEvents || [];
+          const importArmEvent = (evt: ArmEvent) => {
+            setEvtTitle(evt.title); setEvtDate(evt.event_date); setEvtLocation(evt.location || '');
+            setEvtDesc(evt.description || ''); setEvtClasses((evt.weight_classes || []).join(', '));
+            setEvtContact(evt.contact_info || ''); setEvtFee(evt.registration_fee || '');
+            setEvtPrizes(evt.prizes || ''); setEvtContactPerson(evt.contact_person || '');
+            setEditingEventId(evt.id); window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+          const resetEvtForm = () => {
+            setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses('');
+            setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson('');
+            setEvtImages([]); setEvtImagePreviews([]); setEditingEventId(null);
+          };
+          const handleEvtSubmit = () => {
+            if (editingEventId) {
+              updateEvent.mutate({
+                id: editingEventId, title: evtTitle.trim(), event_date: evtDate, location: evtLocation.trim(),
+                description: evtDesc.trim() || null,
+                weight_classes: evtClasses.split(',').map((s: string) => s.trim()).filter(Boolean),
+                contact_info: evtContact.trim() || null,
+                registration_fee: evtFee.trim(), prizes: evtPrizes.trim(), contact_person: evtContactPerson.trim(),
+              });
+            } else {
+              addEvent.mutate();
+            }
+          };
+          const formOpen = editingEventId !== null || events.length === 0;
+          return (
           <div>
-            <h2 className="text-lg font-semibold text-white mb-4"><Calendar className="w-5 h-5 text-brand-400 inline mr-2" />赛事管理</h2>
-            <div className="glass rounded-2xl p-5 mb-6">
-              <h3 className="text-sm font-semibold text-white mb-4">添加赛事</h3>
-              <div className="space-y-3">
-                {/* Image upload */}
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">🖼️ 上传海报（可选，用于展示）</label>
-                  {evtImagePreviews.length > 0 && (
-                    <div className="flex gap-2 mb-2 flex-wrap">
-                      {evtImagePreviews.map((url, i) => (
-                        <div key={i} className="relative"><img src={url} className="w-20 h-20 object-cover rounded-lg" alt="" />
-                          <button onClick={() => { setEvtImagePreviews(p => p.filter((_, j) => j !== i)); setEvtImages(p => p.filter((_, j) => j !== i)); }} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">✕</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500 text-sm">
-                    📁 选择海报图片
-                    <input type="file" accept="image/*" multiple onChange={e => {
-                      const files = Array.from(e.target.files || []);
-                      setEvtImages(prev => [...prev, ...files]);
-                      setEvtImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
-                    }} className="hidden" />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><label className="block text-xs text-stone-400 mb-1">赛事名称 <span className="text-red-400">*</span></label><input type="text" value={evtTitle} onChange={e => setEvtTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：北京腕力公开赛2025" /></div>
-                  <div><label className="block text-xs text-stone-400 mb-1">比赛日期</label><input type="date" value={evtDate} onChange={e => setEvtDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-500/50 transition-all text-sm" /></div>
-                </div>
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">级别设置 <span className="text-red-400">*</span></label>
-                  <input type="text" value={evtClasses} onChange={e => setEvtClasses(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：63kg, 78kg, 95kg（逗号分隔）" />
-                </div>
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">比赛地点 <span className="text-red-400">*</span></label>
-                  <input type="text" value={evtLocation} onChange={e => setEvtLocation(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：朝阳区SOHO现代城" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><label className="block text-xs text-stone-400 mb-1">报名费 <span className="text-red-400">*</span></label><input type="text" value={evtFee} onChange={e => setEvtFee(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：50元/人" /></div>
-                  <div><label className="block text-xs text-stone-400 mb-1">报名联系人 <span className="text-red-400">*</span></label><input type="text" value={evtContactPerson} onChange={e => setEvtContactPerson(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：张教练 微信xxx" /></div>
-                </div>
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">奖金奖品设置 <span className="text-red-400">*</span></label>
-                  <textarea value={evtPrizes} onChange={e => setEvtPrizes(e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="如：第一名 ¥1500 + 奖杯&#10;第二名 ¥800 + 奖牌&#10;第三名 ¥500 + 奖牌" /></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><label className="block text-xs text-stone-400 mb-1">其他联系方式</label><input type="text" value={evtContact} onChange={e => setEvtContact(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：微信 xxx（可选）" /></div>
-                  <div><label className="block text-xs text-stone-400 mb-1">赛事描述（可选）</label><input type="text" value={evtDesc} onChange={e => setEvtDesc(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="简短描述..." /></div>
-                </div>
-                <button onClick={() => addEvent.mutate()} disabled={addEvent.isPending} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold text-sm hover:from-brand-400 transition-all disabled:opacity-50">{addEvent.isPending ? '添加中...' : '添加赛事'}</button>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white"><Calendar className="w-5 h-5 text-brand-400 inline mr-2" />赛事管理 ({events.length})</h2>
+              {events.length > 0 && <button onClick={() => { if (editingEventId) resetEvtForm(); else setEditingEventId(-1); }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-white/5 border border-white/10 text-stone-400 hover:text-white hover:bg-white/10 transition-all">
+                {editingEventId ? '取消' : '+ 添加赛事'}
+              </button>}
             </div>
+
+            {(formOpen || editingEventId === -1) && (
+              <div className="glass rounded-2xl p-5 mb-6">
+                <h3 className="text-sm font-semibold text-white mb-4">{editingEventId && editingEventId > 0 ? '✏️ 编辑赛事' : '添加赛事'}</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-stone-400 mb-1">🖼️ 上传海报（可选）</label>
+                    {evtImagePreviews.length > 0 && (
+                      <div className="flex gap-2 mb-2 flex-wrap">
+                        {evtImagePreviews.map((url: string, i: number) => (
+                          <div key={i} className="relative"><img src={url} className="w-20 h-20 object-cover rounded-lg" alt="" />
+                            <button onClick={() => { setEvtImagePreviews(evtImagePreviews.filter((_: string, j: number) => j !== i)); setEvtImages(evtImages.filter((_: File, j: number) => j !== i)); }} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500 text-sm">
+                      📁 选择海报图片
+                      <input type="file" accept="image/*" multiple onChange={e => {
+                        const files = Array.from(e.target.files || []);
+                        setEvtImages([...evtImages, ...files]);
+                        setEvtImagePreviews([...evtImagePreviews, ...files.map((f: File) => URL.createObjectURL(f))]);
+                      }} className="hidden" />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label className="block text-xs text-stone-400 mb-1">赛事名称 <span className="text-red-400">*</span></label><input type="text" value={evtTitle} onChange={e => setEvtTitle(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：北京腕力公开赛2025" /></div>
+                    <div><label className="block text-xs text-stone-400 mb-1">比赛日期</label><input type="date" value={evtDate} onChange={e => setEvtDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-500/50 transition-all text-sm" /></div>
+                  </div>
+                  <div><label className="block text-xs text-stone-400 mb-1">级别设置 <span className="text-red-400">*</span></label><input type="text" value={evtClasses} onChange={e => setEvtClasses(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：63kg, 78kg, 95kg（逗号分隔）" /></div>
+                  <div><label className="block text-xs text-stone-400 mb-1">比赛地点 <span className="text-red-400">*</span></label><input type="text" value={evtLocation} onChange={e => setEvtLocation(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：朝阳区SOHO现代城" /></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label className="block text-xs text-stone-400 mb-1">报名费 <span className="text-red-400">*</span></label><input type="text" value={evtFee} onChange={e => setEvtFee(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：50元/人" /></div>
+                    <div><label className="block text-xs text-stone-400 mb-1">报名联系人 <span className="text-red-400">*</span></label><input type="text" value={evtContactPerson} onChange={e => setEvtContactPerson(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：张教练 微信xxx" /></div>
+                  </div>
+                  <div><label className="block text-xs text-stone-400 mb-1">奖金奖品设置 <span className="text-red-400">*</span></label><textarea value={evtPrizes} onChange={e => setEvtPrizes(e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="如：第一名 ¥1500 + 奖杯&#10;第二名 ¥800 + 奖牌&#10;第三名 ¥500 + 奖牌" /></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label className="block text-xs text-stone-400 mb-1">其他联系方式</label><input type="text" value={evtContact} onChange={e => setEvtContact(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="可选" /></div>
+                    <div><label className="block text-xs text-stone-400 mb-1">赛事描述（可选）</label><input type="text" value={evtDesc} onChange={e => setEvtDesc(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="简短描述..." /></div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={handleEvtSubmit} disabled={addEvent.isPending || updateEvent.isPending}
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold text-sm hover:from-brand-400 transition-all disabled:opacity-50">
+                      {editingEventId && editingEventId > 0 ? (updateEvent.isPending ? '更新中...' : '保存修改') : (addEvent.isPending ? '添加中...' : '添加赛事')}
+                    </button>
+                    {editingEventId && editingEventId > 0 && <button onClick={resetEvtForm} className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 transition-all">取消编辑</button>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {events.length === 0 ? (
+              <div className="glass rounded-2xl p-12 text-center text-stone-600">暂无赛事</div>
+            ) : (
+              <div className="space-y-2">
+                {events.map((evt: ArmEvent) => (
+                  <div key={evt.id} className={`glass rounded-xl px-5 py-3 flex items-center justify-between gap-3 flex-wrap ${editingEventId === evt.id ? 'border-brand-500/40' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-white font-medium truncate">{evt.title}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${new Date(evt.event_date) >= new Date() ? 'bg-emerald-500/20 text-emerald-400' : 'bg-stone-500/20 text-stone-400'}`}>
+                          {new Date(evt.event_date) >= new Date() ? '进行中/即将' : '已结束'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-stone-500 mt-1">
+                        {evt.event_date} {evt.location && `· ${evt.location}`} {evt.weight_classes && evt.weight_classes.length > 0 && `· ${evt.weight_classes.join(' ')}`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => importArmEvent(evt)} className="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-stone-400 hover:text-white hover:bg-white/10 transition-all">✏️ 编辑</button>
+                      <button onClick={() => { if (confirm(`确定删除赛事「${evt.title}」？`)) deleteEvent.mutate(evt.id); }} disabled={deleteEvent.isPending} className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50">🗑 删除</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {activeTab === 'articles' && (
           <div>
