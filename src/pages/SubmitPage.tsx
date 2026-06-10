@@ -89,6 +89,7 @@ export function SubmitPage() {
         avatarUrl = publicUrl;
       } catch (e) { toast.error('照片上传失败，请重试'); setIsSubmitting(false); return; }
     }
+    const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       name: form.name.trim(), codename: form.codename.trim() || null, gender: form.gender,
       hand: form.hand, weight_class: form.weight_class,
@@ -96,7 +97,8 @@ export function SubmitPage() {
       training_spot: form.training_spot.trim() || null,
       achievements: form.achievements.trim() || null,
       bio: form.bio.trim() || null, contact: form.contact.trim() || null,
-      status: 'pending',
+      status: editingId ? undefined : 'pending',
+      user_id: user?.id || null,
     };
     const { error } = editingId
       ? await supabase.from('athletes').update(payload).eq('id', editingId)

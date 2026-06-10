@@ -153,13 +153,23 @@ export function AdminPage() {
     onError: (e: Error) => toast.error(`操作失败: ${e.message}`),
   });
 
-  const addAdmin = useMutation({
+  const addAdminByEmail = useMutation({
     mutationFn: async ({ email, name }: { email: string; name?: string }) => {
       const { data, error } = await supabase.rpc('add_admin_with_name', { target_email: email, admin_name: name || null });
       if (error) throw new Error(error.message);
       if (data?.startsWith('error:')) throw new Error(data.replace('error: ', ''));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setNewAdminEmail(''); setNewAdminName(''); toast.success('管理员已添加'); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const addAdminByUid = useMutation({
+    mutationFn: async ({ uid, name }: { uid: string; name?: string }) => {
+      const { data, error } = await supabase.rpc('add_admin_by_uid', { target_uid: uid, admin_name: name || null });
+      if (error) throw new Error(error.message);
+      if (data?.startsWith('error:')) throw new Error(data.replace('error: ', ''));
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('管理员已添加'); },
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -577,36 +587,34 @@ export function AdminPage() {
               <h3 className="text-sm font-semibold text-white mb-3"><UserPlus className="w-4 h-4 text-brand-400 inline mr-2" />直接添加管理员</h3>
               <div className="flex gap-3">
                 <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入对方注册邮箱" />
-                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate({ email: newAdminEmail.trim(), name: newAdminName.trim() || undefined }); }} disabled={addAdmin.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
+                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdminByEmail.mutate({ email: newAdminEmail.trim(), name: newAdminName.trim() || undefined }); }} disabled={addAdminByEmail.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdminByEmail.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
               </div>
               <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。</p>
             </div>
 
             <div className="glass rounded-2xl p-5 mb-6">
               <h3 className="text-sm font-semibold text-white mb-3">👤 从运动员列表添加管理员</h3>
-              <p className="text-xs text-stone-500 mb-3">选择已注册的运动员，输入其登录邮箱即可设为管理员</p>
+              <p className="text-xs text-stone-500 mb-3">选择运动员直接设为管理员</p>
               <div className="flex gap-3 flex-wrap">
                 <select
-                  className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50"
+                  className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
                   onChange={e => {
                     const a = approved.find(ath => ath.id === parseInt(e.target.value));
-                    if (a) { setNewAdminName(a.name); if (a.contact) setNewAdminEmail(a.contact.includes('@') ? a.contact : ''); }
+                    if (a?.user_id) {
+                      addAdminByUid.mutate({ uid: a.user_id, name: a.name });
+                    } else {
+                      toast.error('该运动员未关联账号，请先让其登录后重新提交信息');
+                    }
+                    e.target.value = '';
                   }}
                   defaultValue=""
                 >
-                  <option value="" disabled>选择运动员</option>
+                  <option value="" disabled className="bg-stone-900 text-stone-400">选择运动员</option>
                   {approved.map(a => (
-                    <option key={a.id} value={a.id}>{a.name}{a.codename ? ` (${a.codename})` : ''} · {a.weight_class}</option>
+                    <option key={a.id} value={a.id} className="bg-stone-900 text-white">{a.name}{a.codename ? ` (${a.codename})` : ''} · {a.weight_class}{a.user_id ? '' : ' ⚠️未关联'}</option>
                   ))}
                 </select>
-                <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
-                  className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm"
-                  placeholder="运动员的登录邮箱" />
-                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate({ email: newAdminEmail.trim(), name: newAdminName.trim() || undefined }); }}
-                  disabled={addAdmin.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
-                  {addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}设为管理员
-                </button>
               </div>
             </div>
 
