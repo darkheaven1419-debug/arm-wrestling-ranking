@@ -9,7 +9,7 @@ import { computePowerLevel } from '@/lib/powerLevel';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Athlete, ArmEvent } from '@/types';
 
-interface AdminUser { id: number; user_id: string; role: string; created_at: string; }
+interface AdminUser { id: number; user_id: string; role: string; display_name: string | null; created_at: string; }
 interface AdminApp { id: number; user_id: string; status: string; created_at: string; }
 
 export function AdminPage() {
@@ -26,6 +26,7 @@ export function AdminPage() {
   const [artTitle, setArtTitle] = useState(''); const [artContent, setArtContent] = useState('');
   const [artCategory, setArtCategory] = useState('technique');
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminName, setNewAdminName] = useState('');
   const [evtImages, setEvtImages] = useState<File[]>([]);
   const [evtImagePreviews, setEvtImagePreviews] = useState<string[]>([]);
   const queryClient = useQueryClient();
@@ -153,12 +154,12 @@ export function AdminPage() {
   });
 
   const addAdmin = useMutation({
-    mutationFn: async (email: string) => {
-      const { data, error } = await supabase.rpc('add_admin_by_email', { target_email: email });
+    mutationFn: async ({ email, name }: { email: string; name?: string }) => {
+      const { data, error } = await supabase.rpc('add_admin_with_name', { target_email: email, admin_name: name || null });
       if (error) throw new Error(error.message);
       if (data?.startsWith('error:')) throw new Error(data.replace('error: ', ''));
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setNewAdminEmail(''); toast.success('管理员已添加'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setNewAdminEmail(''); setNewAdminName(''); toast.success('管理员已添加'); },
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -567,7 +568,7 @@ export function AdminPage() {
               <h3 className="text-sm font-semibold text-white mb-3"><UserPlus className="w-4 h-4 text-brand-400 inline mr-2" />直接添加管理员</h3>
               <div className="flex gap-3">
                 <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入对方注册邮箱" />
-                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate(newAdminEmail.trim()); }} disabled={addAdmin.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
+                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate({ email: newAdminEmail.trim(), name: newAdminName.trim() || undefined }); }} disabled={addAdmin.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
               </div>
               <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。</p>
             </div>
@@ -580,7 +581,7 @@ export function AdminPage() {
                   className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50"
                   onChange={e => {
                     const a = approved.find(ath => ath.id === parseInt(e.target.value));
-                    if (a?.contact) setNewAdminEmail(a.contact.includes('@') ? a.contact : '');
+                    if (a) { setNewAdminName(a.name); if (a.contact) setNewAdminEmail(a.contact.includes('@') ? a.contact : ''); }
                   }}
                   defaultValue=""
                 >
@@ -592,7 +593,7 @@ export function AdminPage() {
                 <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
                   className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm"
                   placeholder="运动员的登录邮箱" />
-                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate(newAdminEmail.trim()); }}
+                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate({ email: newAdminEmail.trim(), name: newAdminName.trim() || undefined }); }}
                   disabled={addAdmin.isPending}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
                   {addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}设为管理员
@@ -611,7 +612,7 @@ export function AdminPage() {
             <div className="space-y-2">
               {adminUsers?.map(admin => (
                 <div key={admin.id} className="glass rounded-xl px-5 py-3 flex items-center justify-between">
-                  <span className="text-white text-sm">{admin.role === 'super_admin' ? '👑 负责人' : '🛡️ 管理员'}</span>
+                  <span className="text-white text-sm">{admin.role === 'super_admin' ? '👑 负责人' : '🛡️ 管理员'}{admin.display_name && <span className="text-stone-400 ml-2">— {admin.display_name}</span>}</span>
                   {admin.role !== 'super_admin' && <button onClick={() => removeAdmin.mutate(admin.id)} disabled={removeAdmin.isPending} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"><Trash2 className="w-3 h-3" />移除</button>}
                 </div>
               ))}
