@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell, Calendar } from 'lucide-react';
+import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell, Calendar, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import { computePowerLevel } from '@/lib/powerLevel';
-import type { Announcement, Athlete, ArmEvent, Hand } from '@/types';
+import { GridSkeleton } from '@/components/Skeleton';
+import type { Announcement, Athlete, ArmEvent, BattleRecord, Hand } from '@/types';
 import { useState } from 'react';
 
 const GRADIENTS = [
@@ -38,6 +39,15 @@ export function HomePage() {
     queryFn: async () => { const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(2); if (error) return []; return (data || []) as Announcement[]; },
     retry: false
   });
+  const { data: recentBattles } = useQuery({
+    queryKey: ['recent-battles'],
+    queryFn: async () => {
+      const { data } = await supabase.from('battle_records').select('*').order('created_at', { ascending: false }).limit(5);
+      return (data || []) as BattleRecord[];
+    },
+    retry: false
+  });
+  const isFeaturedLoading = !featuredAthletes;
 
   return (
     <div className="relative">
@@ -116,8 +126,42 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Recent Battles */}
+      {recentBattles && recentBattles.length > 0 && (
+        <section className="relative max-w-4xl mx-auto px-4 pb-16">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 justify-center"><Activity className="w-5 h-5 text-rose-400" />最新战绩</h2>
+          <div className="space-y-2">
+            {recentBattles.map(b => {
+              const winnerName = (b as any).winner_name || `#${b.winner_id}`;
+              const loserName = (b as any).loser_name || `#${b.loser_id}`;
+              return (
+              <Link key={b.id} to={`/athlete/${b.winner_id}`} className="glass rounded-xl px-5 py-3 flex items-center gap-4 hover:bg-white/[0.06] transition-colors block">
+                <span className="text-lg shrink-0">⚔️</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-white font-medium">{winnerName}</span>
+                  <span className="text-stone-600 mx-2">胜</span>
+                  <span className="text-stone-400">{loserName}</span>
+                </div>
+                <div className="text-xs text-stone-500 shrink-0">
+                  {b.hand} · {b.event_name || '友谊赛'} · {new Date(b.created_at).toLocaleDateString('zh-CN')}
+                </div>
+              </Link>
+              );
+            })}
+          </div>
+          <div className="text-center mt-4">
+            <Link to="/compare" className="text-xs text-stone-500 hover:text-brand-400 transition-colors">⚔️ 记录更多战绩 →</Link>
+          </div>
+        </section>
+      )}
+
       {/* Featured Athletes */}
-      {featuredAthletes && featuredAthletes.length > 0 && (
+      {isFeaturedLoading ? (
+        <section className="relative max-w-6xl mx-auto px-4 pb-16">
+          <h2 className="text-xl font-bold text-white mb-6 text-center">优秀运动员</h2>
+          <GridSkeleton count={6} />
+        </section>
+      ) : featuredAthletes && featuredAthletes.length > 0 && (
         <section className="relative max-w-6xl mx-auto px-4 pb-16">
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 justify-center"><Trophy className="w-5 h-5 text-amber-400" />优秀运动员</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
