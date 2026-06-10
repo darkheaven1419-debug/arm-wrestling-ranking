@@ -26,7 +26,6 @@ export function AdminPage() {
   const [artTitle, setArtTitle] = useState(''); const [artContent, setArtContent] = useState('');
   const [artCategory, setArtCategory] = useState('technique');
   const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [newAdminName, setNewAdminName] = useState('');
   const [evtImages, setEvtImages] = useState<File[]>([]);
   const [evtImagePreviews, setEvtImagePreviews] = useState<string[]>([]);
   const queryClient = useQueryClient();
@@ -159,7 +158,7 @@ export function AdminPage() {
       if (error) throw new Error(error.message);
       if (data?.startsWith('error:')) throw new Error(data.replace('error: ', ''));
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setNewAdminEmail(''); setNewAdminName(''); toast.success('管理员已添加'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setNewAdminEmail(''); toast.success('管理员已添加'); },
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -596,59 +595,14 @@ export function AdminPage() {
           </div>
         )}
 
-        {activeTab === 'admins' && isSuperAdmin && (
-          <div>
-            <div className="glass rounded-2xl p-5 mb-6">
-              <h3 className="text-sm font-semibold text-white mb-3"><UserPlus className="w-4 h-4 text-brand-400 inline mr-2" />直接添加管理员</h3>
-              <div className="flex gap-3">
-                <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入对方注册邮箱" />
-                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdminByEmail.mutate({ email: newAdminEmail.trim(), name: newAdminName.trim() || undefined }); }} disabled={addAdminByEmail.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdminByEmail.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
-              </div>
-              <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。</p>
-            </div>
-
-            <div className="glass rounded-2xl p-5 mb-6">
-              <h3 className="text-sm font-semibold text-white mb-3">👤 从运动员列表添加管理员</h3>
-              <p className="text-xs text-stone-500 mb-3">选择运动员直接设为管理员</p>
-              <div className="flex gap-3 flex-wrap">
-                <select
-                  className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 appearance-none"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
-                  onChange={e => {
-                    const a = approved.find(ath => ath.id === parseInt(e.target.value));
-                    if (a?.user_id) {
-                      addAdminByUid.mutate({ uid: a.user_id, name: a.name });
-                    } else {
-                      toast.error('该运动员未关联账号，请先让其登录后重新提交信息');
-                    }
-                    e.target.value = '';
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled className="bg-stone-900 text-stone-400">选择运动员</option>
-                  {approved.map(a => (
-                    <option key={a.id} value={a.id} className="bg-stone-900 text-white">{a.name}{a.codename ? ` (${a.codename})` : ''} · {a.weight_class}{a.user_id ? '' : ' ⚠️未关联'}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="glass rounded-2xl p-5 mb-6">
-            <div className="mt-0 pt-0 border-t-0">
-              <h3 className="text-sm font-semibold text-white mb-3">🔑 重置用户密码</h3>
-              <div className="flex gap-3"><input type="email" value={pwEmail} onChange={e => setPwEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入用户邮箱" /></div>
-              <div className="flex gap-3 mt-2"><input type="text" value={resetPassword} onChange={e => setResetPassword(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="新密码（默认 wrist123456）" /><button onClick={handleResetPassword} className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 font-semibold text-sm hover:bg-amber-500/30 transition-all whitespace-nowrap">重置</button></div>
-              <p className="text-xs text-stone-600 mt-2">默认密码为 wrist123456，也可自定义后通知用户修改。</p>
-            </div>
-            </div>
-            <div className="space-y-2">
-              {adminUsers?.map(admin => (
-                <AdminRow key={admin.id} admin={admin} removeAdmin={removeAdmin} updateAdminName={updateAdminName} />
-              ))}
-              {(!adminUsers || adminUsers.length === 0) && <p className="text-center text-stone-600 py-8">暂无</p>}
-            </div>
-          </div>
-        )}
+        {activeTab === 'admins' && isSuperAdmin && <AdminsTab
+          addAdminByEmail={addAdminByEmail} addAdminByUid={addAdminByUid}
+          newAdminEmail={newAdminEmail} setNewAdminEmail={setNewAdminEmail}
+          pwEmail={pwEmail} setPwEmail={setPwEmail}
+          resetPassword={resetPassword} setResetPassword={setResetPassword}
+          handleResetPassword={handleResetPassword}
+          adminUsers={adminUsers} removeAdmin={removeAdmin} updateAdminName={updateAdminName}
+        />}
       </div>
     </div>
   );
@@ -708,6 +662,77 @@ function AdminRow({ admin, removeAdmin, updateAdminName }: {
           <Trash2 className="w-3 h-3" />移除
         </button>
       )}
+    </div>
+  );
+}
+
+function AdminsTab(props: {
+  addAdminByEmail: { mutate: (v: { email: string; name?: string }) => void; isPending: boolean };
+  addAdminByUid: { mutate: (v: { uid: string; name?: string }) => void; isPending: boolean };
+  newAdminEmail: string; setNewAdminEmail: (v: string) => void;
+  pwEmail: string; setPwEmail: (v: string) => void;
+  resetPassword: string; setResetPassword: (v: string) => void;
+  handleResetPassword: () => void;
+  adminUsers: AdminUser[] | undefined;
+  removeAdmin: { mutate: (id: number) => void; isPending: boolean };
+  updateAdminName: { mutate: (v: { id: number; name: string }) => void; isPending: boolean };
+}) {
+  const { addAdminByEmail, addAdminByUid, newAdminEmail, setNewAdminEmail,
+    pwEmail, setPwEmail, resetPassword, setResetPassword, handleResetPassword,
+    adminUsers, removeAdmin, updateAdminName } = props;
+  const { data: authUsers } = useQuery({
+    queryKey: ['auth-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_auth_users');
+      if (error) return [];
+      return (data || []) as { user_id: string; email: string }[];
+    },
+  });
+
+  return (
+    <div>
+      <div className="glass rounded-2xl p-5 mb-6">
+        <h3 className="text-sm font-semibold text-white mb-3"><UserPlus className="w-4 h-4 text-brand-400 inline mr-2" />添加管理员</h3>
+        <p className="text-xs text-stone-500 mb-3">从已注册用户中选择，一键设为管理员</p>
+        <div className="flex gap-3 flex-wrap">
+          <select
+            className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 appearance-none"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
+            onChange={e => {
+              const uid = e.target.value;
+              if (uid) addAdminByUid.mutate({ uid });
+              e.target.value = '';
+            }}
+            defaultValue=""
+          >
+            <option value="" disabled className="bg-stone-900 text-stone-400">选择注册用户...</option>
+            {authUsers?.map(u => (
+              <option key={u.user_id} value={u.user_id} className="bg-stone-900 text-white">{u.email}</option>
+            ))}
+          </select>
+        </div>
+        <p className="text-xs text-stone-600 mt-2">或者手动输入邮箱：</p>
+        <div className="flex gap-3 mt-2">
+          <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入邮箱地址" />
+          <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdminByEmail.mutate({ email: newAdminEmail.trim() }); }}
+            disabled={addAdminByEmail.isPending}
+            className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-stone-300 text-sm hover:bg-white/10 transition-all disabled:opacity-50 whitespace-nowrap">添加</button>
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-5 mb-6">
+        <h3 className="text-sm font-semibold text-white mb-3">🔑 重置用户密码</h3>
+        <div className="flex gap-3"><input type="email" value={pwEmail} onChange={e => setPwEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入用户邮箱" /></div>
+        <div className="flex gap-3 mt-2"><input type="text" value={resetPassword} onChange={e => setResetPassword(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="新密码（默认 wrist123456）" /><button onClick={handleResetPassword} className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 font-semibold text-sm hover:bg-amber-500/30 transition-all whitespace-nowrap">重置</button></div>
+      </div>
+
+      <div className="space-y-2">
+        {adminUsers?.map(admin => (
+          <AdminRow key={admin.id} admin={admin} removeAdmin={removeAdmin} updateAdminName={updateAdminName} />
+        ))}
+        {(!adminUsers || adminUsers.length === 0) && <p className="text-center text-stone-600 py-8">暂无管理员</p>}
+      </div>
     </div>
   );
 }
