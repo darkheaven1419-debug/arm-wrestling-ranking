@@ -13,7 +13,8 @@ export interface Athlete {
   avatar_url: string | null;
   contact: string | null;
   status: 'pending' | 'approved' | 'rejected';
-  rank_score: number;
+  is_featured?: boolean;
+  video_urls?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +56,7 @@ export interface ArmEvent {
   description: string | null;
   weight_classes: string[] | null;
   poster_url: string | null;
+  poster_urls?: string[];
   contact_info: string | null;
   created_at: string;
 }

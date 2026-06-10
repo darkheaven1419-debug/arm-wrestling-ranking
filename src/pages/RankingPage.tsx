@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Athlete } from '@/types';
-import { getBadgeInfo } from '@/lib/badges';
+import { computePowerLevel, getPowerBadge } from '@/lib/powerLevel';
 
 export function RankingPage() {
   const { hand, weightClass } = useParams<{ hand: string; weightClass: string }>();
@@ -19,7 +19,7 @@ export function RankingPage() {
         .eq('hand', hand)
         .eq('weight_class', weightClass)
         .eq('status', 'approved')
-        .order('rank_score', { ascending: false });
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       return data as Athlete[];
@@ -139,13 +139,11 @@ export function RankingPage() {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className="flex items-center gap-1">
-                    {(() => { const badge = getBadgeInfo(athlete.rank_score); return <span className={`text-xs px-1.5 py-0.5 rounded-md ${badge.bgClass} ${badge.borderClass} border`} title={badge.label}>{badge.icon}</span>; })()}
-                  </div>
+                  {(() => { const pl = computePowerLevel(index + 1); const badge = getPowerBadge(pl); return <span className={`text-xs px-1.5 py-0.5 rounded-md ${badge.bgClass} ${badge.borderClass} border`} title={badge.label}>{badge.icon}</span>; })()}
                   <div className="text-2xl font-black text-brand-400">
-                    {athlete.rank_score}
+                    {computePowerLevel(index + 1)}
                   </div>
-                  <div className="text-xs text-stone-600">积分</div>
+                  <div className="text-xs text-stone-600">战力</div>
                 </div>
               </motion.div>
             ))}

@@ -4,11 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { ArrowLeft, User, Swords, ArrowLeftRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { getBadgeInfo } from '@/lib/badges';
+import { getPowerBadge } from '@/lib/powerLevel';
 import type { Athlete } from '@/types';
 
 function AthleteCard({ athlete, onRemove }: { athlete: Athlete; onRemove: () => void }) {
-  const badge = getBadgeInfo(athlete.rank_score);
+  const badge = getPowerBadge(0); // Default badge for compare view
   return (
     <div className="glass rounded-2xl p-6 flex-1 min-w-0">
       <div className="flex items-start gap-4 mb-4">
@@ -25,9 +25,7 @@ function AthleteCard({ athlete, onRemove }: { athlete: Athlete; onRemove: () => 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between"><span className="text-stone-500">级别</span><span className="text-white">{athlete.weight_class}</span></div>
         <div className="flex justify-between"><span className="text-stone-500">惯用手</span><span className="text-white">{athlete.hand}</span></div>
-        <div className="flex justify-between"><span className="text-stone-500">体重</span><span className="text-white">{athlete.body_weight ?? '--'} kg</span></div>
         <div className="flex justify-between"><span className="text-stone-500">地区</span><span className="text-white">{athlete.city}</span></div>
-        <div className="flex justify-between"><span className="text-stone-500">积分</span><span className="text-brand-400 font-bold text-lg">{athlete.rank_score}</span></div>
       </div>
       {athlete.achievements && <div className="mt-4 pt-4 border-t border-white/5"><p className="text-xs text-stone-400 mb-1">🏆 比赛成绩</p><p className="text-white text-sm">{athlete.achievements}</p></div>}
       {athlete.training_spot && <div className="mt-2"><p className="text-xs text-stone-500">🏠 常去：{athlete.training_spot}</p></div>}
@@ -102,20 +100,15 @@ export function ComparePage() {
         {selectedA && selectedB && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 text-center">
             <Swords className="w-8 h-8 text-brand-400 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-white mb-2">对比结果</h3>
+            <h3 className="text-lg font-bold text-white mb-2">运动员对比</h3>
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-white font-bold">{selectedA.name}</span>
-              <span className="text-brand-400 font-black text-xl">{selectedA.rank_score}</span>
-              <span className="text-stone-600">vs</span>
-              <span className="text-brand-400 font-black text-xl">{selectedB.rank_score}</span>
-              <span className="text-white font-bold">{selectedB.name}</span>
+              <span className="text-white font-bold text-lg">{selectedA.name}</span>
+              <span className="text-stone-600 text-lg">vs</span>
+              <span className="text-white font-bold text-lg">{selectedB.name}</span>
             </div>
             <p className="text-xs text-stone-500 mt-2">
-              {selectedA.rank_score > selectedB.rank_score
-                ? `${selectedA.name} 积分领先 ${selectedA.rank_score - selectedB.rank_score} 分`
-                : selectedB.rank_score > selectedA.rank_score
-                  ? `${selectedB.name} 积分领先 ${selectedB.rank_score - selectedA.rank_score} 分`
-                  : '积分相同，势均力敌！'}
+              {selectedA.weight_class === selectedB.weight_class ? `同级别：${selectedA.weight_class}` : `不同级别：${selectedA.weight_class} vs ${selectedB.weight_class}`}
+              {selectedA.hand === selectedB.hand ? ` · 同为${selectedA.hand}` : ` · ${selectedA.hand} vs ${selectedB.hand}`}
             </p>
           </motion.div>
         )}

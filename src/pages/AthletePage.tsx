@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, User, MapPin, Scale, Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import { getBadgeInfo, getNextBadge } from '@/lib/badges';
+import { getPowerBadge } from '@/lib/powerLevel';
 import type { Athlete, BattleRecord } from '@/types';
 
 export function AthletePage() {
@@ -50,9 +50,7 @@ export function AthletePage() {
             </div>
           </div>
           <div className="text-center shrink-0">
-            {(() => { const badge = getBadgeInfo(athlete.rank_score); return <div className={`inline-flex flex-col items-center px-3 py-2 rounded-xl ${badge.bgClass} ${badge.borderClass} border mb-2`}><span className="text-2xl">{badge.icon}</span><span className={`text-xs font-bold ${badge.color}`}>{badge.label}</span></div>; })()}
-            <div className="text-4xl font-black text-brand-400">{athlete.rank_score}</div><div className="text-xs text-stone-500">积分</div>
-            {(() => { const next = getNextBadge(athlete.rank_score); return next ? <div className="text-xs text-stone-600 mt-1">距{next.icon}{next.label}还差 {next.minScore - athlete.rank_score} 分</div> : null; })()}
+            {athlete.is_featured && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400">⭐ 精选</span>}
           </div>
         </div>
 
