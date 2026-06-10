@@ -14,6 +14,7 @@ export interface Athlete {
   contact: string | null;
   status: 'pending' | 'approved' | 'rejected';
   rank_score: number | null;
+  rank_score_left: number | null;
   is_featured?: boolean;
   video_urls?: string[];
   created_at: string;

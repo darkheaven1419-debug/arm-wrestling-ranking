@@ -16,10 +16,9 @@ export function RankingPage() {
       const { data, error } = await supabase
         .from('athletes')
         .select('*')
-        .eq('hand', hand)
         .eq('weight_class', weightClass)
         .eq('status', 'approved')
-        .order('rank_score', { ascending: true });
+        .order(hand === '左手' ? 'rank_score_left' : 'rank_score', { ascending: true });
 
       if (error) throw error;
       return data as Athlete[];
@@ -91,7 +90,8 @@ export function RankingPage() {
         )}
 
         {!isLoading && athletes && athletes.length > 0 && (() => {
-          const hasRankings = athletes.some(a => (a.rank_score ?? 0) > 0);
+          const rankField = hand === '左手' ? 'rank_score_left' : 'rank_score';
+          const hasRankings = athletes.some(a => ((a as any)[rankField] ?? 0) > 0);
           return (
           <motion.div className="space-y-3" initial="hidden" animate="visible">
             {athletes.map((athlete, index) => (

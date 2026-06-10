@@ -111,8 +111,11 @@ export function AdminPage() {
   });
 
   const updateRankScore = useMutation({
-    mutationFn: async ({ id, rank_score }: { id: number; rank_score: number }) => {
-      const { error } = await supabase.from('athletes').update({ rank_score }).eq('id', id);
+    mutationFn: async ({ id, rank_score, rank_score_left }: { id: number; rank_score?: number | null; rank_score_left?: number | null }) => {
+      const data: Record<string, number | null> = {};
+      if (rank_score !== undefined) data.rank_score = rank_score;
+      if (rank_score_left !== undefined) data.rank_score_left = rank_score_left;
+      const { error } = await supabase.from('athletes').update(data).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('排名已更新'); },
@@ -592,26 +595,25 @@ export function AdminPage() {
 
 function RankingTab({ athletes, updateRankScore }: {
   athletes: Athlete[];
-  updateRankScore: { mutate: (v: { id: number; rank_score: number }) => void; isPending: boolean };
+  updateRankScore: { mutate: (v: { id: number; rank_score?: number; rank_score_left?: number }) => void; isPending: boolean };
 }) {
   const [hand, setHand] = useState<string | null>(null);
   const [weightClass, setWeightClass] = useState<string | null>(null);
 
-  // Get available hands
-  const hands = [...new Set(athletes.map(a => a.hand).filter(Boolean))].sort();
-  // Get available weight classes for selected hand
-  const classes = hand
-    ? [...new Set(athletes.filter(a => a.hand === hand).map(a => a.weight_class))].sort()
-    : [];
-  // Get athletes in selected group, sorted by current rank
+  const rankField = hand === '左手' ? 'rank_score_left' : 'rank_score';
+  const classes = WEIGHT_CLASSES.map(w => w.value);
   const groupAthletes = hand && weightClass
     ? athletes
-        .filter(a => a.hand === hand && a.weight_class === weightClass)
-        .sort((a, b) => (a.rank_score ?? 999) - (b.rank_score ?? 999))
+        .filter(a => a.weight_class === weightClass)
+        .sort((a, b) => ((a as any)[rankField] ?? 999) - ((b as any)[rankField] ?? 999))
     : [];
 
   const saveRank = (id: number, rank: number) => {
-    updateRankScore.mutate({ id, rank_score: rank > 0 ? rank : 0 });
+    if (hand === '左手') {
+      updateRankScore.mutate({ id, rank_score_left: rank > 0 ? rank : null } as any);
+    } else {
+      updateRankScore.mutate({ id, rank_score: rank > 0 ? rank : null } as any);
+    }
   };
 
   // Step 1: Choose hand
@@ -621,12 +623,12 @@ function RankingTab({ athletes, updateRankScore }: {
         <h2 className="text-lg font-semibold text-white mb-2">🏆 排名设置</h2>
         <p className="text-xs text-stone-500 mb-6">选择惯用手</p>
         <div className="grid grid-cols-2 gap-4">
-          {hands.map(h => (
-            <button key={h} onClick={() => setHand(h!)}
+          {['左手', '右手'].map(h => (
+            <button key={h} onClick={() => setHand(h)}
               className="glass rounded-2xl p-8 text-center hover:bg-white/[0.06] transition-all hover:border-brand-500/30">
               <span className="text-4xl block mb-3">{h === '左手' ? '🤚' : '✋'}</span>
               <span className="text-white text-lg font-bold">{h}</span>
-              <p className="text-stone-500 text-xs mt-1">{athletes.filter(a => a.hand === h).length} 人</p>
+              <p className="text-stone-500 text-xs mt-1">{athletes.length} 人</p>
             </button>
           ))}
         </div>
@@ -671,7 +673,8 @@ function RankingTab({ athletes, updateRankScore }: {
       ) : (
         <div className="space-y-2">
           {groupAthletes.map((a, i) => {
-            const rank = a.rank_score && a.rank_score > 0 ? a.rank_score : null;
+            const rawRank = (a as any)[rankField];
+            const rank = rawRank && rawRank > 0 ? rawRank : null;
             const power = rank ? computePowerLevel(rank) : null;
             return (
               <div key={a.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">

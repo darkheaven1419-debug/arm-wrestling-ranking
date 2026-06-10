@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Calendar, MapPin, Users, DollarSign, Gift, Phone, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Gift, Phone, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { ArmEvent } from '@/types';
 
@@ -75,7 +75,7 @@ function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void 
             )}
             {event.registration_fee && (
               <div className="glass rounded-xl p-4">
-                <div className="flex items-center gap-2 text-stone-400 text-xs mb-1"><DollarSign className="w-3.5 h-3.5" />报名费</div>
+                <div className="flex items-center gap-2 text-stone-400 text-xs mb-1"><span className="text-sm font-bold">￥</span> 报名费</div>
                 <p className="text-amber-400 text-sm font-semibold">{event.registration_fee}</p>
               </div>
             )}
@@ -199,7 +199,7 @@ export function EventsPage() {
                     </div>
                   )}
                   <div className="px-5 pb-4 flex items-center gap-4 text-xs flex-wrap">
-                    {evt.registration_fee && <span className="text-amber-400 flex items-center gap-1"><DollarSign className="w-3 h-3" />{evt.registration_fee}</span>}
+                    {evt.registration_fee && <span className="text-amber-400 flex items-center gap-1"><span className="font-bold">￥</span>{evt.registration_fee}</span>}
                     {evt.prizes && <span className="text-emerald-400 flex items-center gap-1 truncate max-w-[160px]"><Gift className="w-3 h-3 shrink-0" />{evt.prizes.split('\n')[0]}</span>}
                     <span className="text-brand-400 ml-auto group-hover:translate-x-1 transition-transform text-xs">查看详情 →</span>
                   </div>

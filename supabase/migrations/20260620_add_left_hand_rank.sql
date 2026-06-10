@@ -1,0 +1,1 @@
+ALTER TABLE athletes ADD COLUMN IF NOT EXISTS rank_score_left INTEGER;
