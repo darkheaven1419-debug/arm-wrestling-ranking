@@ -6,6 +6,7 @@ import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, UserPlus, Tras
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { computePowerLevel } from '@/lib/powerLevel';
+import { WEIGHT_CLASSES } from '@/lib/constants';
 import type { Athlete } from '@/types';
 
 interface AdminUser { id: number; user_id: string; role: string; created_at: string; }
@@ -24,7 +25,6 @@ export function AdminPage() {
   const [evtImages, setEvtImages] = useState<File[]>([]);
   const [evtImagePreviews, setEvtImagePreviews] = useState<string[]>([]);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
-  const [editingScores, setEditingScores] = useState<Record<number, number>>({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -368,7 +368,7 @@ export function AdminPage() {
         )}
 
         {activeTab === 'ranking' && (
-          <RankingTab athletes={approved} updateRankScore={updateRankScore} editingScores={editingScores} setEditingScores={setEditingScores} />
+          <RankingTab athletes={approved} updateRankScore={updateRankScore} />
         )}
 
         {activeTab === 'applications' && isSuperAdmin && (
@@ -505,74 +505,128 @@ export function AdminPage() {
   );
 }
 
-function RankingTab({ athletes, updateRankScore, editingScores, setEditingScores }: {
+function RankingTab({ athletes, updateRankScore }: {
   athletes: Athlete[];
   updateRankScore: { mutate: (v: { id: number; rank_score: number }) => void; isPending: boolean };
-  editingScores: Record<number, number>;
-  setEditingScores: React.Dispatch<React.SetStateAction<Record<number, number>>>;
 }) {
-  // Group athletes by hand + weight_class
-  const groups = new Map<string, Athlete[]>();
-  for (const a of athletes) {
-    const key = `${a.hand} · ${a.weight_class}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(a);
-  }
-  // Sort each group by rank_score
-  for (const [, list] of groups) {
-    list.sort((a, b) => (a.rank_score ?? 999) - (b.rank_score ?? 999));
-  }
-  // Sort groups by name
-  const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const [hand, setHand] = useState<string | null>(null);
+  const [weightClass, setWeightClass] = useState<string | null>(null);
 
+  // Get available hands
+  const hands = [...new Set(athletes.map(a => a.hand).filter(Boolean))].sort();
+  // Get available weight classes for selected hand
+  const classes = hand
+    ? [...new Set(athletes.filter(a => a.hand === hand).map(a => a.weight_class))].sort()
+    : [];
+  // Get athletes in selected group, sorted by current rank
+  const groupAthletes = hand && weightClass
+    ? athletes
+        .filter(a => a.hand === hand && a.weight_class === weightClass)
+        .sort((a, b) => (a.rank_score ?? 999) - (b.rank_score ?? 999))
+    : [];
+
+  const saveRank = (id: number, rank: number) => {
+    updateRankScore.mutate({ id, rank_score: rank > 0 ? rank : 0 });
+  };
+
+  // Step 1: Choose hand
+  if (!hand) {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-2">🏆 排名设置</h2>
+        <p className="text-xs text-stone-500 mb-6">选择惯用手</p>
+        <div className="grid grid-cols-2 gap-4">
+          {hands.map(h => (
+            <button key={h} onClick={() => setHand(h!)}
+              className="glass rounded-2xl p-8 text-center hover:bg-white/[0.06] transition-all hover:border-brand-500/30">
+              <span className="text-4xl block mb-3">{h === '左手' ? '🤚' : '✋'}</span>
+              <span className="text-white text-lg font-bold">{h}</span>
+              <p className="text-stone-500 text-xs mt-1">{athletes.filter(a => a.hand === h).length} 人</p>
+            </button>
+          ))}
+        </div>
+        <button onClick={() => { setHand(null); setWeightClass(null); }} className="mt-4 text-sm text-stone-600 hover:text-stone-400">← 返回</button>
+      </div>
+    );
+  }
+
+  // Step 2: Choose weight class
+  if (!weightClass) {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-2">🏆 排名设置 · {hand}</h2>
+        <p className="text-xs text-stone-500 mb-4">选择体重级别</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {classes.map(wc => {
+            const count = athletes.filter(a => a.hand === hand && a.weight_class === wc).length;
+            const icon = WEIGHT_CLASSES.find(w => w.value === wc)?.icon || '💪';
+            return (
+              <button key={wc} onClick={() => setWeightClass(wc)}
+                className="glass rounded-2xl p-5 text-center hover:bg-white/[0.06] transition-all hover:border-brand-500/30">
+                <span className="text-3xl block mb-2">{icon}</span>
+                <span className="text-white font-bold">{wc}</span>
+                <p className="text-stone-500 text-xs mt-0.5">{count} 人</p>
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={() => setHand(null)} className="mt-4 text-sm text-stone-600 hover:text-stone-400 inline-block">← 重选惯用手</button>
+      </div>
+    );
+  }
+
+  // Step 3: Edit rankings
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white mb-2">🏆 排名设置</h2>
-      <p className="text-xs text-stone-500 mb-6">按级别分组，输入排名数字（1=第1名, 2=第2名...），战力值自动计算。留空或0表示不参与排名。</p>
-      <div className="space-y-6">
-        {sortedGroups.map(([groupName, list]) => (
-          <div key={groupName}>
-            <h3 className="text-sm font-bold text-stone-300 mb-3 px-2">{groupName} ({list.length}人)</h3>
-            <div className="space-y-2">
-              {list.map(a => {
-                const editingVal = editingScores[a.id] !== undefined ? editingScores[a.id] : null;
-                const currentRank = a.rank_score ?? 0;
-                const power = currentRank > 0 ? computePowerLevel(currentRank) : null;
-                return (
-                  <div key={a.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">
-                    <span className="text-white text-sm font-medium min-w-0 truncate flex-1">
-                      {a.name}
-                      {a.codename && <span className="text-brand-400 ml-1.5 text-xs">「{a.codename}」</span>}
-                    </span>
-                    <span className="text-stone-500 text-xs shrink-0">排名</span>
-                    {editingVal !== null ? (
-                      <span className="inline-flex items-center gap-1">
-                        <input type="number" min="0" value={editingVal} onChange={e => setEditingScores(prev => ({ ...prev, [a.id]: Math.max(0, Number(e.target.value)) }))}
-                          className="w-14 px-2 py-1 rounded bg-white/10 border border-brand-500/30 text-white text-sm text-center"
-                          autoFocus
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') { updateRankScore.mutate({ id: a.id, rank_score: editingVal }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }
-                            if (e.key === 'Escape') setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; });
-                          }} />
-                        <button onClick={() => { updateRankScore.mutate({ id: a.id, rank_score: editingVal }); setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; }); }} className="text-emerald-400 hover:text-emerald-300 text-sm">✓</button>
-                        <button onClick={() => setEditingScores(prev => { const n = { ...prev }; delete n[a.id]; return n; })} className="text-stone-500 hover:text-stone-300 text-sm">✕</button>
-                      </span>
-                    ) : (
-                      <button onClick={() => setEditingScores(prev => ({ ...prev, [a.id]: currentRank }))}
-                        className={`text-sm font-bold min-w-[2rem] ${currentRank > 0 ? 'text-brand-400' : 'text-stone-600'}`}>
-                        {currentRank > 0 ? `#${currentRank}` : '未设'}
-                      </button>
-                    )}
-                    <span className="text-xs shrink-0 w-16 text-right">
-                      {power !== null ? <span className="text-brand-400 font-bold">战力 {power}</span> : <span className="text-stone-600">-</span>}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        {sortedGroups.length === 0 && <p className="text-center text-stone-600 py-8">暂无已通过的运动员</p>}
+      <h2 className="text-lg font-semibold text-white mb-1">🏆 {hand} · {weightClass}</h2>
+      <p className="text-xs text-stone-500 mb-4">点击数字编辑排名，战力值自动计算。不参与排名的选手留空或填0。</p>
+
+      {groupAthletes.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center text-stone-600">该级别暂无运动员</div>
+      ) : (
+        <div className="space-y-2">
+          {groupAthletes.map((a, i) => {
+            const rank = a.rank_score && a.rank_score > 0 ? a.rank_score : null;
+            const power = rank ? computePowerLevel(rank) : null;
+            return (
+              <div key={a.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-stone-500 text-sm w-6 text-right shrink-0">{i + 1}</span>
+                <span className="text-white text-sm font-medium min-w-0 truncate flex-1">
+                  {a.name}
+                  {a.codename && <span className="text-brand-400 ml-1.5 text-xs">「{a.codename}」</span>}
+                </span>
+                <span className="text-stone-500 text-xs shrink-0">排名</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="99"
+                  defaultValue={rank ?? ''}
+                  placeholder="--"
+                  className="w-16 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm text-center focus:outline-none focus:border-brand-500/50 transition-all"
+                  onBlur={e => {
+                    const v = parseInt(e.target.value) || 0;
+                    saveRank(a.id, v);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const v = parseInt((e.target as HTMLInputElement).value) || 0;
+                      saveRank(a.id, v);
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                />
+                <span className="text-xs w-20 text-right shrink-0">
+                  {power !== null ? <span className="text-brand-400 font-bold">战力 {power}</span> : <span className="text-stone-600">-</span>}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-3 mt-6">
+        <button onClick={() => setWeightClass(null)} className="text-sm text-stone-500 hover:text-stone-300">← 重选级别</button>
+        <button onClick={() => { setHand(null); setWeightClass(null); }} className="text-sm text-stone-500 hover:text-stone-300">← 重选惯用手</button>
       </div>
     </div>
   );
