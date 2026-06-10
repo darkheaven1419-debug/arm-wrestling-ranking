@@ -22,6 +22,7 @@ export function AdminPage() {
   const [evtFee, setEvtFee] = useState(''); const [evtPrizes, setEvtPrizes] = useState('');
   const [evtContactPerson, setEvtContactPerson] = useState('');
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [existingPosterUrls, setExistingPosterUrls] = useState<string[]>([]);
   const [artTitle, setArtTitle] = useState(''); const [artContent, setArtContent] = useState('');
   const [artCategory, setArtCategory] = useState('technique');
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -414,21 +415,38 @@ export function AdminPage() {
             setEvtDesc(evt.description || ''); setEvtClasses((evt.weight_classes || []).join(', '));
             setEvtContact(evt.contact_info || ''); setEvtFee(evt.registration_fee || '');
             setEvtPrizes(evt.prizes || ''); setEvtContactPerson(evt.contact_person || '');
+            const existingUrls = evt.poster_urls?.length ? evt.poster_urls : (evt.poster_url ? [evt.poster_url] : []);
+            setExistingPosterUrls(existingUrls);
+            setEvtImagePreviews(existingUrls);
+            setEvtImages([]);
             setEditingEventId(evt.id); window.scrollTo({ top: 0, behavior: 'smooth' });
           };
           const resetEvtForm = () => {
             setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses('');
             setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson('');
-            setEvtImages([]); setEvtImagePreviews([]); setEditingEventId(null);
+            setEvtImages([]); setEvtImagePreviews([]); setExistingPosterUrls([]); setEditingEventId(null);
           };
-          const handleEvtSubmit = () => {
-            if (editingEventId) {
+          const handleEvtSubmit = async () => {
+            if (editingEventId && editingEventId > 0) {
+              // Upload new images if any
+              const uploadedUrls: string[] = [];
+              for (const file of evtImages) {
+                const ext = file.name.split('.').pop();
+                const path = `events/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                await supabase.storage.from('training-images').upload(path, file);
+                const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
+                uploadedUrls.push(publicUrl);
+              }
+              // Merge: new uploads replace all, or keep existing if no new uploads
+              const finalUrls = uploadedUrls.length > 0 ? uploadedUrls : existingPosterUrls;
               updateEvent.mutate({
                 id: editingEventId, title: evtTitle.trim(), event_date: evtDate, location: evtLocation.trim(),
                 description: evtDesc.trim() || null,
                 weight_classes: evtClasses.split(',').map((s: string) => s.trim()).filter(Boolean),
                 contact_info: evtContact.trim() || null,
                 registration_fee: evtFee.trim(), prizes: evtPrizes.trim(), contact_person: evtContactPerson.trim(),
+                poster_url: finalUrls[0] || null,
+                poster_urls: finalUrls.length > 0 ? finalUrls : [],
               });
             } else {
               addEvent.mutate();
@@ -450,7 +468,7 @@ export function AdminPage() {
                 <h3 className="text-sm font-semibold text-white mb-4">{editingEventId && editingEventId > 0 ? '✏️ 编辑赛事' : '添加赛事'}</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs text-stone-400 mb-1">🖼️ 上传海报（可选）</label>
+                    <label className="block text-xs text-stone-400 mb-1">🖼️ 上传海报（可选）{existingPosterUrls.length > 0 && <span className="text-amber-400 ml-1">已有 {existingPosterUrls.length} 张，上传新图将替换</span>}</label>
                     {evtImagePreviews.length > 0 && (
                       <div className="flex gap-2 mb-2 flex-wrap">
                         {evtImagePreviews.map((url: string, i: number) => (
