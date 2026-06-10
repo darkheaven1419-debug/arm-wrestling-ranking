@@ -162,16 +162,6 @@ export function AdminPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const addAdminByUid = useMutation({
-    mutationFn: async ({ uid, name }: { uid: string; name?: string }) => {
-      const { data, error } = await supabase.rpc('add_admin_by_uid', { target_uid: uid, admin_name: name || null });
-      if (error) throw new Error(error.message);
-      if (data?.startsWith('error:')) throw new Error(data.replace('error: ', ''));
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('管理员已添加'); },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
   const [pwEmail, setPwEmail] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const handleResetPassword = async () => {
@@ -596,12 +586,12 @@ export function AdminPage() {
         )}
 
         {activeTab === 'admins' && isSuperAdmin && <AdminsTab
-          addAdminByEmail={addAdminByEmail} addAdminByUid={addAdminByUid}
-          newAdminEmail={newAdminEmail} setNewAdminEmail={setNewAdminEmail}
+          addAdminByEmail={addAdminByEmail} newAdminEmail={newAdminEmail} setNewAdminEmail={setNewAdminEmail}
           pwEmail={pwEmail} setPwEmail={setPwEmail}
           resetPassword={resetPassword} setResetPassword={setResetPassword}
           handleResetPassword={handleResetPassword}
           adminUsers={adminUsers} removeAdmin={removeAdmin} updateAdminName={updateAdminName}
+          approved={approved}
         />}
       </div>
     </div>
@@ -668,7 +658,6 @@ function AdminRow({ admin, removeAdmin, updateAdminName }: {
 
 function AdminsTab(props: {
   addAdminByEmail: { mutate: (v: { email: string; name?: string }) => void; isPending: boolean };
-  addAdminByUid: { mutate: (v: { uid: string; name?: string }) => void; isPending: boolean };
   newAdminEmail: string; setNewAdminEmail: (v: string) => void;
   pwEmail: string; setPwEmail: (v: string) => void;
   resetPassword: string; setResetPassword: (v: string) => void;
@@ -676,45 +665,47 @@ function AdminsTab(props: {
   adminUsers: AdminUser[] | undefined;
   removeAdmin: { mutate: (id: number) => void; isPending: boolean };
   updateAdminName: { mutate: (v: { id: number; name: string }) => void; isPending: boolean };
+  approved: Athlete[];
 }) {
-  const { addAdminByEmail, addAdminByUid, newAdminEmail, setNewAdminEmail,
+  const { addAdminByEmail, newAdminEmail, setNewAdminEmail,
     pwEmail, setPwEmail, resetPassword, setResetPassword, handleResetPassword,
-    adminUsers, removeAdmin, updateAdminName } = props;
-  const { data: authUsers } = useQuery({
-    queryKey: ['auth-users-with-athletes'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('list_users_with_athletes');
-      if (error) return [];
-      return (data || []) as { user_id: string; email: string; athlete_name: string | null; athlete_contact: string | null }[];
-    },
-  });
+    adminUsers, removeAdmin, updateAdminName, approved } = props;
+
+  // Show athletes who have an email (submitted while logged in)
+  const athletesWithEmail = approved.filter(a => a.user_email);
 
   return (
     <div>
       <div className="glass rounded-2xl p-5 mb-6">
         <h3 className="text-sm font-semibold text-white mb-3"><UserPlus className="w-4 h-4 text-brand-400 inline mr-2" />添加管理员</h3>
-        <p className="text-xs text-stone-500 mb-3">从已注册用户中选择，一键设为管理员</p>
-        <div className="flex gap-3 flex-wrap">
-          <select
-            className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 appearance-none"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
-            onChange={e => {
-              const uid = e.target.value;
-              const u = authUsers?.find(u => u.user_id === uid);
-              if (uid) addAdminByUid.mutate({ uid, name: u?.athlete_name || undefined });
-              e.target.value = '';
-            }}
-            defaultValue=""
-          >
-            <option value="" disabled className="bg-stone-900 text-stone-400">选择注册用户...</option>
-            {authUsers?.map(u => (
-              <option key={u.user_id} value={u.user_id} className="bg-stone-900 text-white">
-                {u.athlete_name ? `${u.athlete_name} · ` : ''}{u.email}{u.athlete_contact ? ` · ${u.athlete_contact}` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-        <p className="text-xs text-stone-600 mt-2">或者手动输入邮箱：</p>
+        <p className="text-xs text-stone-500 mb-3">从已提交信息的运动员中选择，一键设为管理员</p>
+        {athletesWithEmail.length > 0 ? (
+          <div className="flex gap-3 flex-wrap">
+            <select
+              className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 appearance-none"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
+              onChange={e => {
+                const a = approved.find(ath => ath.id === parseInt(e.target.value));
+                if (a?.user_email) {
+                  addAdminByEmail.mutate({ email: a.user_email, name: a.name });
+                  toast.success(`${a.name} 已设为管理员`);
+                }
+                e.target.value = '';
+              }}
+              defaultValue=""
+            >
+              <option value="" disabled className="bg-stone-900 text-stone-400">选择运动员...</option>
+              {athletesWithEmail.map(a => (
+                <option key={a.id} value={a.id} className="bg-stone-900 text-white">
+                  {a.name}{a.codename ? ` (${a.codename})` : ''} · {a.user_email}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <p className="text-amber-400 text-xs">暂无已关联邮箱的运动员。请让运动员登录后提交信息，或使用下方手动输入。</p>
+        )}
+        <p className="text-xs text-stone-600 mt-3">手动输入邮箱：</p>
         <div className="flex gap-3 mt-2">
           <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
             className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入邮箱地址" />

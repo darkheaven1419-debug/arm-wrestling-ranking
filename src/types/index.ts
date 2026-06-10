@@ -17,6 +17,7 @@ export interface Athlete {
   rank_score_left: number | null;
   is_featured?: boolean;
   user_id: string | null;
+  user_email: string | null;
   video_urls?: string[];
   created_at: string;
   updated_at: string;

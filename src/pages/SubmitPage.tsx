@@ -99,6 +99,7 @@ export function SubmitPage() {
       bio: form.bio.trim() || null, contact: form.contact.trim() || null,
       status: editingId ? undefined : 'pending',
       user_id: user?.id || null,
+      user_email: user?.email || null,
     };
     const { error } = editingId
       ? await supabase.from('athletes').update(payload).eq('id', editingId)
