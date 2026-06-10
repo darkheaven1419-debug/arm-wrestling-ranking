@@ -13,6 +13,7 @@ export interface Athlete {
   avatar_url: string | null;
   contact: string | null;
   status: 'pending' | 'approved' | 'rejected';
+  rank_score: number | null;
   is_featured?: boolean;
   video_urls?: string[];
   created_at: string;
