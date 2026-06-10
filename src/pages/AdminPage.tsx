@@ -681,11 +681,11 @@ function AdminsTab(props: {
     pwEmail, setPwEmail, resetPassword, setResetPassword, handleResetPassword,
     adminUsers, removeAdmin, updateAdminName } = props;
   const { data: authUsers } = useQuery({
-    queryKey: ['auth-users'],
+    queryKey: ['auth-users-with-athletes'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('list_auth_users');
+      const { data, error } = await supabase.rpc('list_users_with_athletes');
       if (error) return [];
-      return (data || []) as { user_id: string; email: string }[];
+      return (data || []) as { user_id: string; email: string; athlete_name: string | null; athlete_contact: string | null }[];
     },
   });
 
@@ -700,14 +700,17 @@ function AdminsTab(props: {
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
             onChange={e => {
               const uid = e.target.value;
-              if (uid) addAdminByUid.mutate({ uid });
+              const u = authUsers?.find(u => u.user_id === uid);
+              if (uid) addAdminByUid.mutate({ uid, name: u?.athlete_name || undefined });
               e.target.value = '';
             }}
             defaultValue=""
           >
             <option value="" disabled className="bg-stone-900 text-stone-400">选择注册用户...</option>
             {authUsers?.map(u => (
-              <option key={u.user_id} value={u.user_id} className="bg-stone-900 text-white">{u.email}</option>
+              <option key={u.user_id} value={u.user_id} className="bg-stone-900 text-white">
+                {u.athlete_name ? `${u.athlete_name} · ` : ''}{u.email}{u.athlete_contact ? ` · ${u.athlete_contact}` : ''}
+              </option>
             ))}
           </select>
         </div>
