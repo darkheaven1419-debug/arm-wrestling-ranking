@@ -569,8 +569,39 @@ export function AdminPage() {
                 <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入对方注册邮箱" />
                 <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate(newAdminEmail.trim()); }} disabled={addAdmin.isPending} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2">{addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}添加</button>
               </div>
-              <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。也可让对方在管理页自行申请。</p>
-            <div className="mt-6 pt-6 border-t border-white/5">
+              <p className="text-xs text-stone-600 mt-3">对方先注册账号，然后你输入其邮箱添加。</p>
+            </div>
+
+            <div className="glass rounded-2xl p-5 mb-6">
+              <h3 className="text-sm font-semibold text-white mb-3">👤 从运动员列表添加管理员</h3>
+              <p className="text-xs text-stone-500 mb-3">选择已注册的运动员，输入其登录邮箱即可设为管理员</p>
+              <div className="flex gap-3 flex-wrap">
+                <select
+                  className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50"
+                  onChange={e => {
+                    const a = approved.find(ath => ath.id === parseInt(e.target.value));
+                    if (a?.contact) setNewAdminEmail(a.contact.includes('@') ? a.contact : '');
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>选择运动员</option>
+                  {approved.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}{a.codename ? ` (${a.codename})` : ''} · {a.weight_class}</option>
+                  ))}
+                </select>
+                <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
+                  className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm"
+                  placeholder="运动员的登录邮箱" />
+                <button onClick={() => { if (!newAdminEmail.trim()) { toast.error('请输入邮箱'); return; } addAdmin.mutate(newAdminEmail.trim()); }}
+                  disabled={addAdmin.isPending}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-semibold text-sm hover:from-brand-400 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
+                  {addAdmin.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}设为管理员
+                </button>
+              </div>
+            </div>
+
+            <div className="glass rounded-2xl p-5 mb-6">
+            <div className="mt-0 pt-0 border-t-0">
               <h3 className="text-sm font-semibold text-white mb-3">🔑 重置用户密码</h3>
               <div className="flex gap-3"><input type="email" value={pwEmail} onChange={e => setPwEmail(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="输入用户邮箱" /></div>
               <div className="flex gap-3 mt-2"><input type="text" value={resetPassword} onChange={e => setResetPassword(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="新密码（默认 wrist123456）" /><button onClick={handleResetPassword} className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 font-semibold text-sm hover:bg-amber-500/30 transition-all whitespace-nowrap">重置</button></div>
