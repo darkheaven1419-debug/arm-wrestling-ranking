@@ -131,14 +131,46 @@ function SpotMarker({ loc, index, isActive, onClick }: { loc: TrainingLocation; 
           {loc.contact_person && <p className="text-xs text-gray-500 mb-1">👤 {loc.contact_person}{loc.contact_phone ? ` · ${loc.contact_phone}` : ''}</p>}
           {loc.schedule && <p className="text-xs text-gray-500">🕐 {loc.schedule}</p>}
           {loc.organization && <p className="text-xs text-gray-500">🏛️ {loc.organization}</p>}
-          <a
-            href={`https://uri.amap.com/marker?position=${loc.longitude},${loc.latitude}&name=${encodeURIComponent(loc.name)}&callnative=1`}
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-500 text-white hover:bg-brand-400 transition-colors no-underline"
-          >🧭 导航到这里</a>
+          <div className="mt-2" onClick={e => e.stopPropagation()}>
+            <NavMenu name={loc.name} lng={loc.longitude!} lat={loc.latitude!} />
+          </div>
         </div>
       </Popup>
     </Marker>
+  );
+}
+
+// ─── 导航菜单 ───
+const NAV_APPS = [
+  { name: '高德地图', icon: '🗺️', url: (n: string, lat: number, lng: number) => `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(n)}&callnative=1` },
+  { name: '百度地图', icon: '📍', url: (n: string, lat: number, lng: number) => `https://api.map.baidu.com/marker?location=${lat},${lng}&title=${encodeURIComponent(n)}&coord_type=gcj02` },
+  { name: '腾讯地图', icon: '📌', url: (n: string, lat: number, lng: number) => `https://apis.map.qq.com/uri/v1/marker?marker=coord:${lat},${lng};title:${encodeURIComponent(n)}` },
+  { name: 'Apple 地图', icon: '🍎', url: (n: string, lat: number, lng: number) => `https://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(n)}` },
+  { name: 'Google 地图', icon: '🌐', url: (n: string, lat: number, lng: number) => `https://www.google.com/maps?q=${encodeURIComponent(n)}+%40${lat},${lng}` },
+];
+
+function NavMenu({ name, lng, lat }: { name: string; lng: number; lat: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 transition-all"
+      ><Navigation className="w-3 h-3" />导航</button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />
+          <div className="absolute bottom-full left-0 mb-1 z-50 bg-stone-900 border border-white/10 rounded-xl shadow-2xl py-1 min-w-[140px]">
+            {NAV_APPS.map(app => (
+              <a key={app.name} href={app.url(name, lat, lng)} target="_blank" rel="noopener noreferrer"
+                onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+                className="block px-3 py-2 text-xs text-stone-300 hover:bg-white/10 transition-colors whitespace-nowrap"
+              >{app.icon} {app.name}</a>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -532,14 +564,7 @@ export function TrainingPage() {
                           {loc.contact_person && <p className="text-xs text-stone-500 mb-1 flex items-center gap-1"><User className="w-3 h-3" />{loc.contact_person}{loc.contact_phone && <span className="ml-1.5 text-stone-600">📞 {loc.contact_phone}</span>}</p>}
                           {loc.description && <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed"><FileText className="w-3 h-3 inline mr-1 opacity-60" />{loc.description}</p>}
                           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
-                            {hasCoords && (
-                              <a
-                                href={`https://uri.amap.com/marker?position=${loc.longitude},${loc.latitude}&name=${encodeURIComponent(loc.name)}&callnative=1`}
-                                target="_blank" rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 transition-all"
-                              ><Navigation className="w-3 h-3" />导航</a>
-                            )}
+                            {hasCoords && <NavMenu name={loc.name} lng={loc.longitude!} lat={loc.latitude!} />}
                             {isAdmin && (
                               <>
                                 <button onClick={(e) => { e.stopPropagation(); startEdit(loc); }} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">✏️ 编辑</button>
