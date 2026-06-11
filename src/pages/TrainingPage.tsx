@@ -8,6 +8,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/lib/supabase';
+import { searchPlaces, type SearchResult } from '@/lib/geocode';
 import type { TrainingLocation } from '@/types';
 
 const BEIJING_CENTER: [number, number] = [39.915, 116.404];
@@ -86,57 +87,6 @@ const createPickerIcon = () => L.divIcon({
   iconAnchor: [18, 40],
   popupAnchor: [0, -40],
 });
-
-// ─── 搜索地点（多源 + 超时 + 自动补全北京前缀）───
-interface SearchResult { lat: number; lng: number; name: string; }
-async function searchPlaces(query: string): Promise<{ results: SearchResult[]; error?: string }> {
-  if (query.length < 2) return { results: [] };
-  const q = encodeURIComponent(query);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-
-  const tryFetch = async (url: string): Promise<SearchResult[]> => {
-    try {
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return parseResults(data);
-    } catch { return []; }
-  };
-
-  const parseResults = (data: any): SearchResult[] => {
-    // Photon format
-    if (data?.features) {
-      return data.features.slice(0, 5).map((f: any) => {
-        const name = f.properties?.name || f.properties?.street || f.properties?.city || '';
-        return { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], name: name || '未知位置' };
-      });
-    }
-    // Nominatim format
-    if (Array.isArray(data)) {
-      return data.slice(0, 5).map((item: any) => ({
-        lat: parseFloat(item.lat), lng: parseFloat(item.lon),
-        name: item.display_name?.split(',')[0] || item.name || '未知位置',
-      }));
-    }
-    return [];
-  };
-
-  // 并行请求两个源
-  const [r1, r2] = await Promise.allSettled([
-    tryFetch(`https://photon.komoot.io/api/?q=${q}&limit=5&lang=zh`),
-    tryFetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('北京 ' + query)}&limit=5&accept-language=zh`),
-  ]);
-
-  clearTimeout(timeout);
-  const merged = [...(r1.status === 'fulfilled' ? r1.value : []), ...(r2.status === 'fulfilled' ? r2.value : [])];
-  const deduped = merged.filter((r, i, arr) => arr.findIndex(x => x.name === r.name) === i).slice(0, 6);
-
-  if (deduped.length === 0) {
-    return { results: [], error: '未找到匹配地点。试试输入完整名称（如"乐刻健身"），或直接在高德地图上点击位置标注。' };
-  }
-  return { results: deduped };
-}
 
 // ─── 地图点击选址 ───
 function MapClickHandler({ enabled, onPick }: { enabled: boolean; onPick: (lat: number, lng: number) => void }) {
@@ -248,7 +198,7 @@ export function TrainingPage() {
       setSearching(true);
       const { results, error } = await searchPlaces(q);
       setSearchResults(results);
-      setSearchError(error || '');
+      setSearchError(error || (results.length === 0 && q.length >= 2 ? '未找到匹配地点' : ''));
       setSearching(false);
     }, 400);
   }, []);
