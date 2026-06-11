@@ -51,6 +51,7 @@ export interface TrainingLocation {
   status?: string;
   latitude: number | null;
   longitude: number | null;
+  organization: string | null;
   created_at: string;
 }
 

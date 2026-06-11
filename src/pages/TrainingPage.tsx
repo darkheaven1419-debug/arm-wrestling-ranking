@@ -157,6 +157,7 @@ function SpotMarker({ loc, index, isActive, onClick }: { loc: TrainingLocation; 
           {loc.address && <p className="text-xs text-gray-500 mb-1">📍 {loc.address}</p>}
           {loc.contact_person && <p className="text-xs text-gray-500 mb-1">👤 {loc.contact_person}{loc.contact_phone ? ` · ${loc.contact_phone}` : ''}</p>}
           {loc.schedule && <p className="text-xs text-gray-500">🕐 {loc.schedule}</p>}
+          {loc.organization && <p className="text-xs text-gray-500">🏛️ {loc.organization}</p>}
         </div>
       </Popup>
     </Marker>
@@ -173,6 +174,7 @@ export function TrainingPage() {
   const [imageFile, setImageFile] = useState<File | null>(null); const [imagePreview, setImagePreview] = useState('');
   const [contactPerson, setContactPerson] = useState(''); const [contactPhone, setContactPhone] = useState('');
   const [schedule, setSchedule] = useState(''); const [description, setDescription] = useState('');
+  const [organization, setOrganization] = useState(''); const [customOrg, setCustomOrg] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -194,11 +196,15 @@ export function TrainingPage() {
     setImagePreview(loc.image_url || ''); setEditingId(loc.id);
     const hasCoords = loc.latitude && loc.longitude;
     setLat(loc.latitude?.toString() || ''); setLng(loc.longitude?.toString() || '');
+    const org = loc.organization || '';
+    const presets = ['斗腕超力嗨', '世界华人腕力协会', '个人'];
+    setOrganization(presets.includes(org) ? org : (org ? '自定义' : ''));
+    setCustomOrg(presets.includes(org) ? '' : org);
     setPickerPos(hasCoords ? [loc.latitude!, loc.longitude!] : null);
     setShowForm(true); setSearchQ(''); setSearchResults([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setImageFile(null); setImagePreview(''); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); };
+  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFile(null); setImagePreview(''); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; setImageFile(f); setImagePreview(URL.createObjectURL(f)); };
 
@@ -270,6 +276,7 @@ export function TrainingPage() {
         name: name.trim(), address: address.trim() || null, image_url: imageUrl,
         contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null,
         schedule: schedule.trim() || null, description: description.trim() || null,
+        organization: organization === '自定义' ? (customOrg.trim() || '自定义') : (organization || null),
         latitude: lat ? parseFloat(lat) : null, longitude: lng ? parseFloat(lng) : null,
       };
       const { error } = editingId
@@ -369,6 +376,19 @@ export function TrainingPage() {
                 </div>
                 <div><label className="block text-sm text-stone-400 mb-1.5">🕐 训练时间</label><input type="text" value={schedule} onChange={e => setSchedule(e.target.value)} className={iCls} placeholder="如：每周二四六 19:00-22:00" /></div>
                 <div>
+                  <label className="block text-sm text-stone-400 mb-1.5">🏛️ 所属组织</label>
+                  <select value={organization} onChange={e => { setOrganization(e.target.value); if (e.target.value !== '自定义') setCustomOrg(''); }} className={iCls + " appearance-none"}>
+                    <option value="">选择组织（选填）</option>
+                    <option value="斗腕超力嗨">💪 斗腕超力嗨</option>
+                    <option value="世界华人腕力协会">🌏 世界华人腕力协会</option>
+                    <option value="个人">🧑 个人</option>
+                    <option value="自定义">✏️ 自定义</option>
+                  </select>
+                  {organization === '自定义' && (
+                    <input type="text" value={customOrg} onChange={e => setCustomOrg(e.target.value)} className={iCls + " mt-2"} placeholder="输入你的组织名称" />
+                  )}
+                </div>
+                <div>
                   <label className="block text-sm text-stone-400 mb-1.5">🖼️ 场地照片</label>
                   {imagePreview ? (
                     <div className="relative mb-2"><img src={imagePreview} alt="预览" className="w-full h-40 object-cover rounded-xl" /><button onClick={() => { setImageFile(null); setImagePreview(''); }} className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80"><X className="w-4 h-4" /></button></div>
@@ -449,6 +469,7 @@ export function TrainingPage() {
                           <h3 className="text-base font-bold text-white mb-1.5 flex items-center gap-2">{loc.name}{isActive && <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />}</h3>
                           {loc.address && <p className="text-xs text-stone-400 mb-1 flex items-start gap-1"><MapPin className="w-3 h-3 mt-0.5 shrink-0" />{loc.address}</p>}
                           {loc.schedule && <p className="text-xs text-stone-500 mb-1">🕐 {loc.schedule}</p>}
+                          {loc.organization && <p className="text-xs text-stone-500 mb-1">🏛️ {loc.organization}</p>}
                           {loc.contact_person && <p className="text-xs text-stone-500 mb-1 flex items-center gap-1"><User className="w-3 h-3" />{loc.contact_person}{loc.contact_phone && <span className="ml-1.5 text-stone-600">📞 {loc.contact_phone}</span>}</p>}
                           {loc.description && <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed"><FileText className="w-3 h-3 inline mr-1 opacity-60" />{loc.description}</p>}
                           {loc.status === 'pending' && isAdmin && (
