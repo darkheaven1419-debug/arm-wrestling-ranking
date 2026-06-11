@@ -87,33 +87,55 @@ const createPickerIcon = () => L.divIcon({
   popupAnchor: [0, -40],
 });
 
-// ─── 搜索地点（Photon + Nominatim 双源）───
+// ─── 搜索地点（多源 + 超时 + 自动补全北京前缀）───
 interface SearchResult { lat: number; lng: number; name: string; }
-async function searchPlaces(query: string): Promise<SearchResult[]> {
-  if (query.length < 2) return [];
-  const results: SearchResult[] = [];
+async function searchPlaces(query: string): Promise<{ results: SearchResult[]; error?: string }> {
+  if (query.length < 2) return { results: [] };
   const q = encodeURIComponent(query);
-  try {
-    // Photon (better POI coverage)
-    const r1 = await fetch(`https://photon.komoot.io/api/?q=${q}&limit=4&lang=zh`);
-    const d1 = await r1.json();
-    for (const f of (d1.features || []).slice(0, 4)) {
-      if (f.geometry?.coordinates) {
-        const name = f.properties?.name || f.properties?.street || '';
-        const city = f.properties?.city || '';
-        results.push({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], name: name ? `${name}${city ? '，'+city : ''}` : f.properties?.osm_key || '' });
-      }
-    }
-  } catch {}
-  if (results.length < 3) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  const tryFetch = async (url: string): Promise<SearchResult[]> => {
     try {
-      // Nominatim fallback
-      const r2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=4&accept-language=zh`);
-      const d2 = await r2.json();
-      for (const item of d2) results.push({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), name: item.display_name?.split(',')[0] || '' });
-    } catch {}
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return parseResults(data);
+    } catch { return []; }
+  };
+
+  const parseResults = (data: any): SearchResult[] => {
+    // Photon format
+    if (data?.features) {
+      return data.features.slice(0, 5).map((f: any) => {
+        const name = f.properties?.name || f.properties?.street || f.properties?.city || '';
+        return { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], name: name || '未知位置' };
+      });
+    }
+    // Nominatim format
+    if (Array.isArray(data)) {
+      return data.slice(0, 5).map((item: any) => ({
+        lat: parseFloat(item.lat), lng: parseFloat(item.lon),
+        name: item.display_name?.split(',')[0] || item.name || '未知位置',
+      }));
+    }
+    return [];
+  };
+
+  // 并行请求两个源
+  const [r1, r2] = await Promise.allSettled([
+    tryFetch(`https://photon.komoot.io/api/?q=${q}&limit=5&lang=zh`),
+    tryFetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('北京 ' + query)}&limit=5&accept-language=zh`),
+  ]);
+
+  clearTimeout(timeout);
+  const merged = [...(r1.status === 'fulfilled' ? r1.value : []), ...(r2.status === 'fulfilled' ? r2.value : [])];
+  const deduped = merged.filter((r, i, arr) => arr.findIndex(x => x.name === r.name) === i).slice(0, 6);
+
+  if (deduped.length === 0) {
+    return { results: [], error: '未找到匹配地点。试试输入完整名称（如"乐刻健身"），或直接在高德地图上点击位置标注。' };
   }
-  return results.slice(0, 5);
+  return { results: deduped };
 }
 
 // ─── 地图点击选址 ───
@@ -185,6 +207,7 @@ export function TrainingPage() {
   const [pickerPos, setPickerPos] = useState<[number, number] | null>(null);
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchError, setSearchError] = useState('');
   const [searching, setSearching] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -204,7 +227,7 @@ export function TrainingPage() {
     setShowForm(true); setSearchQ(''); setSearchResults([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFile(null); setImagePreview(''); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); };
+  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFile(null); setImagePreview(''); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); setSearchError(''); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; setImageFile(f); setImagePreview(URL.createObjectURL(f)); };
 
@@ -218,12 +241,14 @@ export function TrainingPage() {
   // 搜索地点
   const handleSearch = useCallback((q: string) => {
     setSearchQ(q);
+    setSearchError('');
     clearTimeout(searchTimer.current);
     if (q.length < 2) { setSearchResults([]); return; }
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
-      const results = await searchPlaces(q);
+      const { results, error } = await searchPlaces(q);
       setSearchResults(results);
+      setSearchError(error || '');
       setSearching(false);
     }, 400);
   }, []);
@@ -340,11 +365,11 @@ export function TrainingPage() {
                       <input type="text" value={searchQ}
                         onChange={e => handleSearch(e.target.value)}
                         className="flex-1 bg-transparent text-white text-sm placeholder-stone-600 focus:outline-none"
-                        placeholder="搜索北京的地点，如：北京联合大学、SOHO现代城…"
+                        placeholder="搜索地点（如：乐刻健身、北京联合大学）…"
                       />
                       {searching && <span className="w-4 h-4 border-2 border-stone-600 border-t-stone-300 rounded-full animate-spin shrink-0" />}
                     </div>
-                    {/* 搜索结果下拉 */}
+                    {/* 搜索结果 */}
                     {searchResults.length > 0 && (
                       <div className="absolute top-full mt-1 left-0 right-0 z-[2000] bg-stone-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
                         {searchResults.map((r, i) => (
@@ -356,10 +381,24 @@ export function TrainingPage() {
                         ))}
                       </div>
                     )}
+                    {/* 无结果提示 */}
+                    {searchError && !searching && (
+                      <div className="mt-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+                        {searchError}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-brand-500/8 border border-brand-500/15">
+                    <Target className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-white font-semibold mb-0.5">推荐：直接在地图上点击</p>
+                      <p className="text-xs text-stone-400">高德地图上所有街道、小区、商铺都看得清清楚楚。放大地图找到位置，<b className="text-brand-400">点一下</b>即可标注。</p>
+                    </div>
                   </div>
 
                   <p className="text-xs text-stone-500">
-                    💡 在上方搜索框搜索地点，或<b>直接在地图上点击</b>要标注的位置。当前选中：
+                    当前选中：
                     {pickerHasCoords ? (
                       <span className="text-emerald-400 ml-1 font-mono">{pickerPos![0].toFixed(5)}, {pickerPos![1].toFixed(5)}</span>
                     ) : <span className="text-stone-600 ml-1">未选择</span>}
