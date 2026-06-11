@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MapPin, Plus, X, Image, User, FileText, Upload, Navigation, ChevronDown, ChevronUp, List, Crosshair, Dumbbell, Phone } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, X, User, FileText, Upload, Navigation, ChevronDown, ChevronUp, List, Crosshair, Dumbbell, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
