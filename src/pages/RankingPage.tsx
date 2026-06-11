@@ -158,9 +158,6 @@ export function RankingPage() {
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">
             提交你的运动员信息
           </Link>
-          <Link to="/compare" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">
-            ⚔️ 运动员对比
-          </Link>
         </div>
       </div>
     </div>

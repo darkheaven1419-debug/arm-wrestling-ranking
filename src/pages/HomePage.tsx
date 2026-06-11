@@ -150,7 +150,6 @@ export function HomePage() {
             })}
           </div>
           <div className="text-center mt-4">
-            <Link to="/compare" className="text-xs text-stone-500 hover:text-brand-400 transition-colors">⚔️ 记录更多战绩 →</Link>
           </div>
         </section>
       )}

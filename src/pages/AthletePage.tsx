@@ -123,7 +123,6 @@ export function AthletePage() {
         <div className="flex items-center justify-between gap-4 text-xs text-stone-600 mt-6 pt-6 border-t border-white/5">
           <div><span>性别：{athlete.gender}</span><span className="ml-4">加入：{new Date(athlete.created_at).toLocaleDateString('zh-CN')}</span></div>
           <div className="flex items-center gap-3">
-            <Link to={`/compare`} className="text-stone-500 hover:text-stone-300 font-medium">⚔️ 对比</Link>
             <a href={`#/submit?edit=${athlete.id}`} className="text-brand-400 hover:text-brand-300 font-medium">✏️ 编辑</a>
           </div>
         </div>
