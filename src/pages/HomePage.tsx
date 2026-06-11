@@ -171,8 +171,10 @@ export function HomePage() {
                 <p className="text-white text-sm font-bold truncate">{a.name}</p>
                 {a.codename && <p className="text-brand-400 text-xs truncate">{a.codename}</p>}
                 <p className="text-stone-500 text-xs mt-1">{a.weight_class}</p>
-                {(a.rank_score ?? 0) > 0 && (
-                  <p className="text-brand-400 text-xs font-bold mt-1">#{a.rank_score} · 战力 {computePowerLevel(a.rank_score!)}</p>
+                {((a.rank_score ?? 0) > 0 || a.is_unknown_power) && (
+                  <p className={`text-xs font-bold mt-1 ${a.is_unknown_power ? 'text-amber-400' : 'text-brand-400'}`}>
+                    {a.is_unknown_power ? '战力 未知' : `#${a.rank_score} · 战力 ${computePowerLevel(a.rank_score!)}`}
+                  </p>
                 )}
               </motion.a>
             ))}

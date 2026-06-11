@@ -142,8 +142,8 @@ export function RankingPage() {
 
                 {hasRankings && (
                 <div className="text-right shrink-0">
-                  <div className="text-2xl font-black text-brand-400">
-                    {computePowerLevel(index + 1)}
+                  <div className={`text-2xl font-black ${athlete.is_unknown_power ? 'text-amber-400 text-lg' : 'text-brand-400'}`}>
+                    {athlete.is_unknown_power ? '未知' : computePowerLevel(index + 1)}
                   </div>
                   <div className="text-xs text-stone-500">战力值</div>
                 </div>

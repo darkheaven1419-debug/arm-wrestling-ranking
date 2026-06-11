@@ -26,7 +26,7 @@ function StatBar({ label, aVal, bVal, maxVal }: { label: string; aVal: number; b
 }
 
 function AthleteCard({ athlete, onRemove, stats }: { athlete: Athlete; onRemove: () => void; stats?: { wins: number; losses: number } }) {
-  const rankScore = athlete.rank_score ?? 0;
+  const rankScore = athlete.is_unknown_power ? 0 : (athlete.rank_score ?? 0);
   const powerLevel = rankScore > 0 ? computePowerLevel(rankScore) : 0;
   return (
     <div className="glass rounded-2xl p-6 flex-1 min-w-0" role="region" aria-label={`运动员 ${athlete.name}`}>
@@ -37,7 +37,7 @@ function AthleteCard({ athlete, onRemove, stats }: { athlete: Athlete; onRemove:
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-white truncate">{athlete.name}</h2>
           {athlete.codename && <p className="text-brand-400 text-sm">「{athlete.codename}」</p>}
-          {powerLevel > 0 && <p className="text-brand-400 text-sm font-bold mt-1">战力值 {powerLevel}</p>}
+          {athlete.is_unknown_power ? <p className="text-amber-400 text-sm font-bold mt-1">战力值 未知</p> : powerLevel > 0 && <p className="text-brand-400 text-sm font-bold mt-1">战力值 {powerLevel}</p>}
         </div>
         {onRemove && <button onClick={onRemove} className="text-stone-600 hover:text-stone-400 text-sm" aria-label="移除运动员">✕</button>}
       </div>

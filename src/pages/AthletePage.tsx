@@ -49,7 +49,7 @@ export function AthletePage() {
 
   const wc = WEIGHT_CLASSES.find(w => w.value === athlete.weight_class);
   const rank = groupRank?.position ?? null;
-  const powerLevel = rank ? computePowerLevel(rank) : ((athlete.rank_score ?? 0) > 0 ? computePowerLevel(athlete.rank_score!) : 0);
+  const powerLevel = athlete.is_unknown_power ? null : (rank ? computePowerLevel(rank) : ((athlete.rank_score ?? 0) > 0 ? computePowerLevel(athlete.rank_score!) : 0));
 
   return (
     <div className="pt-24 pb-20 px-4"><div className="max-w-2xl mx-auto">
@@ -73,7 +73,7 @@ export function AthletePage() {
           <div className="text-center shrink-0">
             {/* Power Level */}
             <div className="glass rounded-2xl px-5 py-3">
-              <div className="text-3xl font-black text-brand-400">{powerLevel}</div>
+              <div className={`text-3xl font-black ${powerLevel !== null ? 'text-brand-400' : 'text-amber-400 text-xl'}`}>{powerLevel !== null ? powerLevel : '未知'}</div>
               <div className="text-xs text-stone-500">战力值</div>
             </div>
             {rank && (
