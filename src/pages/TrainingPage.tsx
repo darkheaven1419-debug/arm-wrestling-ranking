@@ -377,12 +377,15 @@ export function TrainingPage() {
                 <div><label className="block text-sm text-stone-400 mb-1.5">🕐 训练时间</label><input type="text" value={schedule} onChange={e => setSchedule(e.target.value)} className={iCls} placeholder="如：每周二四六 19:00-22:00" /></div>
                 <div>
                   <label className="block text-sm text-stone-400 mb-1.5">🏛️ 所属组织</label>
-                  <select value={organization} onChange={e => { setOrganization(e.target.value); if (e.target.value !== '自定义') setCustomOrg(''); }} className={iCls + " appearance-none"}>
-                    <option value="">选择组织（选填）</option>
-                    <option value="斗腕超力嗨">💪 斗腕超力嗨</option>
-                    <option value="世界华人腕力协会">🌏 世界华人腕力协会</option>
-                    <option value="个人">🧑 个人</option>
-                    <option value="自定义">✏️ 自定义</option>
+                  <select value={organization} onChange={e => { setOrganization(e.target.value); if (e.target.value !== '自定义') setCustomOrg(''); }}
+                    className="w-full px-4 py-3 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 transition-all appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2.5rem' }}
+                  >
+                    <option value="" className="bg-stone-900 text-stone-400">选择组织（选填）</option>
+                    <option value="斗腕超力嗨" className="bg-stone-900 text-white">💪 斗腕超力嗨</option>
+                    <option value="世界华人腕力协会" className="bg-stone-900 text-white">🌏 世界华人腕力协会</option>
+                    <option value="个人" className="bg-stone-900 text-white">🧑 个人</option>
+                    <option value="自定义" className="bg-stone-900 text-white">✏️ 自定义</option>
                   </select>
                   {organization === '自定义' && (
                     <input type="text" value={customOrg} onChange={e => setCustomOrg(e.target.value)} className={iCls + " mt-2"} placeholder="输入你的组织名称" />
