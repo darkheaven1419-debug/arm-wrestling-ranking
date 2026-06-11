@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Calendar, MapPin, Users, Gift, Phone, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Gift, Phone, X, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/lib/supabase';
 import type { ArmEvent } from '@/types';
 
@@ -122,9 +125,13 @@ export function EventsPage() {
 
   const upcoming = events?.filter((e) => new Date(e.event_date) >= new Date()) ?? [];
   const past = events?.filter((e) => new Date(e.event_date) < new Date()) ?? [];
+  const eventsOnMap = (events || []).filter(e => e.latitude && e.longitude);
+  const [showMap, setShowMap] = useState(false);
 
   const hasPoster = (e: ArmEvent) => !!(e.poster_url || (e.poster_urls && e.poster_urls.length > 0));
   const getPoster = (e: ArmEvent) => (e.poster_urls?.length ? e.poster_urls[0] : e.poster_url) ?? '';
+
+  const evtMarker = L.divIcon({ className: 'custom-marker', html: '<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);border:2px solid #fff;box-shadow:0 2px 8px rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;font-size:12px;">📍</div>', iconSize: [24,24], iconAnchor: [12,12] });
 
   return (
     <div className="pt-24 pb-20 px-4">
@@ -136,6 +143,32 @@ export function EventsPage() {
           <Calendar className="w-7 h-7 text-brand-400" />
           <h1 className="text-3xl font-bold text-white">赛事日历</h1>
         </div>
+
+        {eventsOnMap.length > 0 && (
+          <div className="mb-6">
+            <button onClick={() => setShowMap(!showMap)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-stone-400 hover:text-white text-sm mb-3 transition-all">
+              <Globe className="w-4 h-4" />{showMap ? '收起地图' : '查看赛事地图'} ({eventsOnMap.length})
+            </button>
+            {showMap && (
+              <div className="glass rounded-2xl overflow-hidden h-[350px]">
+                <MapContainer center={[39.915,116.404]} zoom={11} className="h-full w-full z-0" zoomControl={false} attributionControl={false}>
+                  <TileLayer url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}" subdomains={['1','2','3','4']} />
+                  {eventsOnMap.map(evt => (
+                    <Marker key={evt.id} position={[evt.latitude!, evt.longitude!]} icon={evtMarker}>
+                      <Popup>
+                        <div className="min-w-[150px]">
+                          <h3 className="font-bold text-sm text-gray-900">{evt.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">📅 {evt.event_date}</p>
+                          {evt.location && <p className="text-xs text-gray-500">📍 {evt.location}</p>}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </div>
+            )}
+          </div>
+        )}
 
         {isLoading && (
           <div className="space-y-4">

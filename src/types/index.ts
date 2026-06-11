@@ -72,6 +72,8 @@ export interface ArmEvent {
   registration_fee: string | null;
   prizes: string | null;
   contact_person: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 }
 
