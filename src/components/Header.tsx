@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Dumbbell, Menu, X, PlusCircle, UserCog, UserCircle, MapPin, Calendar, BookOpen } from 'lucide-react';
+import { Dumbbell, Menu, X, PlusCircle, UserCog, UserCircle, MapPin, Calendar, BookOpen, Sun, Moon } from 'lucide-react';
 import { SITE_NAME } from '@/lib/constants';
 
 const NAV_LINKS = [
@@ -15,7 +15,14 @@ const NAV_LINKS = [
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
   const location = useLocation();
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+  };
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -54,6 +61,9 @@ export function Header() {
           ))}
         </nav>
 
+        <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10" aria-label="切换主题">
+          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="md:hidden p-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10"

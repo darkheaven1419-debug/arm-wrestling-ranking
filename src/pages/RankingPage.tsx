@@ -112,7 +112,7 @@ export function RankingPage() {
                 </div>
 
                 <div className="w-12 h-12 rounded-xl shrink-0 overflow-hidden border border-brand-500/20">
-                  {athlete.avatar_url ? <img src={athlete.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/20 to-violet-500/10 flex items-center justify-center"><User className="w-5 h-5 text-brand-400" /></div>}
+                  {athlete.avatar_url ? <img loading="lazy" src={athlete.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/20 to-violet-500/10 flex items-center justify-center"><User className="w-5 h-5 text-brand-400" /></div>}
                 </div>
 
                 <div className="flex-1 min-w-0">

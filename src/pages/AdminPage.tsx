@@ -370,7 +370,7 @@ export function AdminPage() {
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                            {a.avatar_url && <img src={a.avatar_url} className="w-12 h-12 rounded-xl object-cover border border-brand-500/20" />}
+                            {a.avatar_url && <img loading="lazy" src={a.avatar_url} className="w-12 h-12 rounded-xl object-cover border border-brand-500/20" />}
                             <h3 className="text-lg font-bold text-white">{a.name}</h3>
                           </div>
                           <div className="text-sm text-stone-500 mt-1 space-x-3"><span>{a.gender}</span><span>{a.hand}</span><span>{a.weight_class}</span>{a.body_weight && <span>{a.body_weight}kg</span>}<span>{a.city}</span></div>
@@ -520,7 +520,7 @@ export function AdminPage() {
                     {evtImagePreviews.length > 0 && (
                       <div className="flex gap-2 mb-2 flex-wrap">
                         {evtImagePreviews.map((url: string, i: number) => (
-                          <div key={i} className="relative"><img src={url} className="w-20 h-20 object-cover rounded-lg" alt="" />
+                          <div key={i} className="relative"><img loading="lazy" src={url} className="w-20 h-20 object-cover rounded-lg" alt="" />
                             <button onClick={() => { setEvtImagePreviews(evtImagePreviews.filter((_: string, j: number) => j !== i)); setEvtImages(evtImages.filter((_: File, j: number) => j !== i)); }} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">✕</button>
                           </div>
                         ))}

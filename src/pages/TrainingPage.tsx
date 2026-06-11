@@ -125,7 +125,7 @@ function SpotMarker({ loc, index, isActive, onClick }: { loc: TrainingLocation; 
     <Marker ref={ref} position={[loc.latitude, loc.longitude]} icon={createMarkerIcon(index, isActive)} eventHandlers={{ click: onClick }}>
       <Popup maxWidth={260} className="spot-popup">
         <div className="min-w-[180px] font-sans">
-          {loc.image_url && <img src={loc.image_url} alt={loc.name} className="w-full h-32 object-cover rounded-lg mb-2.5" />}
+          {loc.image_url && <img loading="lazy" src={loc.image_url} alt={loc.name} className="w-full h-32 object-cover rounded-lg mb-2.5" />}
           <h3 className="font-bold text-[15px] text-gray-900 mb-1.5">{loc.name}</h3>
           {loc.address && <p className="text-xs text-gray-500 mb-1">📍 {loc.address}</p>}
           {loc.contact_person && <p className="text-xs text-gray-500 mb-1">👤 {loc.contact_person}{loc.contact_phone ? ` · ${loc.contact_phone}` : ''}</p>}
@@ -453,7 +453,7 @@ export function TrainingPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                       {existingImages.map((url, i) => (
                         <div key={`e-${i}`} className={`relative rounded-xl overflow-hidden group ${coverIndex === i ? 'ring-2 ring-brand-500' : ''}`}>
-                          <img src={url} alt="" className="w-full h-28 object-cover" />
+                          <img loading="lazy" src={url} alt="" className="w-full h-28 object-cover" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
                             {coverIndex !== i && <button type="button" onClick={() => setCoverIndex(i)} className="px-2 py-1 rounded-lg bg-brand-500 text-black text-xs font-semibold">设为封面</button>}
                             {coverIndex === i && <span className="px-2 py-1 rounded-lg bg-brand-500/80 text-black text-xs font-semibold">★ 封面</span>}
@@ -463,7 +463,7 @@ export function TrainingPage() {
                       ))}
                       {imagePreviews.map((url, i) => (
                         <div key={`n-${i}`} className={`relative rounded-xl overflow-hidden group ${coverIndex === existingImages.length + i ? 'ring-2 ring-brand-500' : ''}`}>
-                          <img src={url} alt="" className="w-full h-28 object-cover" />
+                          <img loading="lazy" src={url} alt="" className="w-full h-28 object-cover" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
                             {coverIndex !== existingImages.length + i && <button type="button" onClick={() => setCoverIndex(existingImages.length + i)} className="px-2 py-1 rounded-lg bg-brand-500 text-black text-xs font-semibold">设为封面</button>}
                             {coverIndex === existingImages.length + i && <span className="px-2 py-1 rounded-lg bg-brand-500/80 text-black text-xs font-semibold">★ 封面</span>}
@@ -543,7 +543,7 @@ export function TrainingPage() {
                         <div className="relative">
                           {loc.image_url ? (
                             <div className="relative">
-                              <img src={loc.image_url} alt={loc.name} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
+                              <img loading="lazy" src={loc.image_url} alt={loc.name} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
                               {(loc.images?.length || 0) > 1 && (
                                 <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 text-white text-[10px] font-semibold">{loc.images!.length} 张</span>
                               )}

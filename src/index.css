@@ -27,6 +27,11 @@
   .card-hover{transition:all .3s cubic-bezier(.4,0,.2,1)}
   .card-hover:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.4);border-color:rgba(234,179,8,.15)}
 }
+[data-theme="light"] body{background:#f8fafc;color:#1a1a2e}
+[data-theme="light"] body::before{background:radial-gradient(ellipse 80% 60% at 50% -20%,rgba(234,179,8,0.08),transparent)}
+[data-theme="light"] .glass{background:rgba(255,255,255,0.85);border-color:rgba(0,0,0,0.06)}
+[data-theme="light"] .glass-strong{background:rgba(255,255,255,0.92);border-color:rgba(0,0,0,0.08)}
+[data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{color-scheme:light}
 
 @keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 @keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}

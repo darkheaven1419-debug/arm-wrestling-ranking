@@ -57,7 +57,7 @@ export function AthletePage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-3xl p-8">
         <div className="flex items-start gap-6 mb-8 flex-wrap">
           <div className="w-20 h-20 rounded-2xl shrink-0 overflow-hidden border-2 border-brand-500/30">
-            {athlete.avatar_url ? <img src={athlete.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 flex items-center justify-center"><User className="w-10 h-10 text-brand-400" /></div>}
+            {athlete.avatar_url ? <img loading="lazy" src={athlete.avatar_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-brand-500/30 to-violet-500/20 flex items-center justify-center"><User className="w-10 h-10 text-brand-400" /></div>}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap mb-2">

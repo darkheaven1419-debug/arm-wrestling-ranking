@@ -27,7 +27,7 @@ function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void 
 
         {images.length > 0 && (
           <div className="relative">
-            <img src={images[imgIndex]} alt="" className="w-full h-56 sm:h-72 object-cover rounded-t-3xl" />
+            <img loading="lazy" src={images[imgIndex]} alt="" className="w-full h-56 sm:h-72 object-cover rounded-t-3xl" />
             {images.length > 1 && (
               <>
                 <button onClick={() => setImgIndex(i => (i - 1 + images.length) % images.length)}
@@ -168,7 +168,7 @@ export function EventsPage() {
                   className="glass rounded-2xl overflow-hidden hover:bg-white/[0.06] transition-all cursor-pointer group hover:border-brand-500/20">
                   {hasPoster(evt) ? (
                     <div className="relative h-40 overflow-hidden">
-                      <img src={getPoster(evt)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img loading="lazy" src={getPoster(evt)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent" />
                       <div className="absolute bottom-3 left-4 flex items-center gap-3">
                         <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-500/90 flex flex-col items-center justify-center">
@@ -219,7 +219,7 @@ export function EventsPage() {
                 <motion.div key={evt.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   onClick={() => setSelectedEvent(evt)}
                   className="glass rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity flex">
-                  {hasPoster(evt) && <div className="w-20 h-20 shrink-0"><img src={getPoster(evt)} alt="" className="w-full h-full object-cover" /></div>}
+                  {hasPoster(evt) && <div className="w-20 h-20 shrink-0"><img loading="lazy" src={getPoster(evt)} alt="" className="w-full h-full object-cover" /></div>}
                   <div className="p-3 flex-1 min-w-0">
                     <h3 className="text-white text-sm font-semibold truncate">{evt.title}</h3>
                     <p className="text-stone-500 text-xs mt-0.5">{new Date(evt.event_date).toLocaleDateString('zh-CN')}</p>

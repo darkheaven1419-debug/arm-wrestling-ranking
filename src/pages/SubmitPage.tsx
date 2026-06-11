@@ -200,7 +200,7 @@ export function SubmitPage() {
           <div>
             <label className={labelClass}>🖼️ 照片（选填）</label>
             {avatarPreview ? (
-              <div className="relative inline-block"><img src={avatarPreview} alt="预览" className="w-24 h-24 rounded-2xl object-cover border-2 border-brand-500/30" /><button type="button" onClick={() => { setAvatarFile(null); setAvatarPreview(''); }} className="absolute -top-1 -right-1 p-1 rounded-full bg-red-500 text-white"><span className="text-xs">✕</span></button></div>
+              <div className="relative inline-block"><img loading="lazy" src={avatarPreview} alt="预览" className="w-24 h-24 rounded-2xl object-cover border-2 border-brand-500/30" /><button type="button" onClick={() => { setAvatarFile(null); setAvatarPreview(''); }} className="absolute -top-1 -right-1 p-1 rounded-full bg-red-500 text-white"><span className="text-xs">✕</span></button></div>
             ) : (
               <label className="flex items-center justify-center gap-2 w-24 h-24 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 transition-all text-stone-500"><Upload className="w-5 h-5" /><input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)); } }} className="hidden" /></label>
             )}

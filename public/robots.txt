@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://darkheaven1419-debug.github.io/arm-wrestling-ranking/sitemap.xml
