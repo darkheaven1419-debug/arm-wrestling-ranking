@@ -143,7 +143,10 @@ export function TrainingPage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState(''); const [address, setAddress] = useState('');
   const [lat, setLat] = useState(''); const [lng, setLng] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null); const [imagePreview, setImagePreview] = useState('');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [coverIndex, setCoverIndex] = useState(0);
   const [contactPerson, setContactPerson] = useState(''); const [contactPhone, setContactPhone] = useState('');
   const [schedule, setSchedule] = useState(''); const [description, setDescription] = useState('');
   const [organization, setOrganization] = useState(''); const [customOrg, setCustomOrg] = useState('');
@@ -166,7 +169,8 @@ export function TrainingPage() {
   const startEdit = (loc: TrainingLocation) => {
     setName(loc.name); setAddress(loc.address || ''); setContactPerson(loc.contact_person || '');
     setContactPhone(loc.contact_phone || ''); setSchedule(loc.schedule || ''); setDescription(loc.description || '');
-    setImagePreview(loc.image_url || ''); setEditingId(loc.id);
+    setExistingImages(loc.images?.length ? loc.images : (loc.image_url ? [loc.image_url] : []));
+    setCoverIndex(loc.cover_index ?? 0); setEditingId(loc.id);
     const hasCoords = loc.latitude && loc.longitude;
     setLat(loc.latitude?.toString() || ''); setLng(loc.longitude?.toString() || '');
     const org = loc.organization || '';
@@ -177,9 +181,22 @@ export function TrainingPage() {
     setShowForm(true); setSearchQ(''); setSearchResults([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFile(null); setImagePreview(''); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); setSearchError(''); };
+  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFiles([]); setImagePreviews([]); setExistingImages([]); setCoverIndex(0); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); setSearchError(''); setIsUploading(false); };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; setImageFile(f); setImagePreview(URL.createObjectURL(f)); };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setImageFiles(prev => [...prev, ...files]);
+    setImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+  };
+  const removeNewImage = (i: number) => {
+    setImageFiles(prev => prev.filter((_, j) => j !== i));
+    setImagePreviews(prev => prev.filter((_, j) => j !== i));
+  };
+  const removeExistingImage = (i: number) => {
+    setExistingImages(prev => prev.filter((_, j) => j !== i));
+    if (coverIndex >= existingImages.length - 1) setCoverIndex(Math.max(0, existingImages.length - 2));
+  };
 
   // 点击地图选址
   const handleMapPick = useCallback((newLat: number, newLng: number) => {
@@ -237,30 +254,41 @@ export function TrainingPage() {
 
   const saveLocation = useMutation({
     mutationFn: async () => {
-      let imageUrl = (editingId && !imageFile) ? imagePreview : null;
-      if (imageFile) {
-        setIsUploading(true);
-        const ext = imageFile.name.split('.').pop();
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('training-images').upload(path, imageFile);
-        if (upErr) throw new Error('图片上传失败');
-        const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
-        imageUrl = publicUrl; setIsUploading(false);
+      setIsUploading(true);
+      try {
+        // Upload all new images
+        const uploadedUrls: string[] = [];
+        for (const file of imageFiles) {
+          const ext = file.name.split('.').pop();
+          const path = `training/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage.from('training-images').upload(path, file);
+          if (upErr) throw new Error(`图片 ${file.name} 上传失败: ${upErr.message}`);
+          const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
+          uploadedUrls.push(publicUrl);
+        }
+        // Merge existing + new
+        const allImages = [...existingImages, ...uploadedUrls];
+        const imageUrl = allImages.length > 0 ? allImages[coverIndex] || allImages[0] : null;
+        const payload = {
+          name: name.trim(), address: address.trim() || null,
+          image_url: imageUrl,
+          images: allImages.length > 0 ? allImages : null,
+          cover_index: allImages.length > 0 ? coverIndex : 0,
+          contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null,
+          schedule: schedule.trim() || null, description: description.trim() || null,
+          organization: organization === '自定义' ? (customOrg.trim() || '自定义') : (organization || null),
+          latitude: lat ? parseFloat(lat) : null, longitude: lng ? parseFloat(lng) : null,
+        };
+        const { error } = editingId
+          ? await supabase.from('training_locations').update(payload).eq('id', editingId)
+          : await supabase.from('training_locations').insert(payload);
+        if (error) throw error;
+      } finally {
+        setIsUploading(false);
       }
-      const payload = {
-        name: name.trim(), address: address.trim() || null, image_url: imageUrl,
-        contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null,
-        schedule: schedule.trim() || null, description: description.trim() || null,
-        organization: organization === '自定义' ? (customOrg.trim() || '自定义') : (organization || null),
-        latitude: lat ? parseFloat(lat) : null, longitude: lng ? parseFloat(lng) : null,
-      };
-      const { error } = editingId
-        ? await supabase.from('training_locations').update(payload).eq('id', editingId)
-        : await supabase.from('training_locations').insert(payload);
-      if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['training-locations'] }); resetForm(); toast.success(editingId ? '已更新' : '已添加'); },
-    onError: (e: Error) => toast.error(e.message || '操作失败'),
+    onError: (e: Error) => { setIsUploading(false); toast.error(e.message || '操作失败'); },
   });
 
   const deleteLocation = useMutation({
@@ -381,11 +409,32 @@ export function TrainingPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm text-stone-400 mb-1.5">🖼️ 场地照片</label>
-                  {imagePreview ? (
-                    <div className="relative mb-2"><img src={imagePreview} alt="预览" className="w-full h-40 object-cover rounded-xl" /><button onClick={() => { setImageFile(null); setImagePreview(''); }} className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80"><X className="w-4 h-4" /></button></div>
-                  ) : null}
-                  <label className="flex items-center justify-center gap-2 px-4 py-8 rounded-xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 hover:bg-white/[0.07] transition-all text-stone-500 hover:text-stone-300"><Upload className="w-5 h-5" />点击上传照片<input type="file" accept="image/*" onChange={handleFileChange} className="hidden" /></label>
+                  <label className="block text-sm text-stone-400 mb-1.5">🖼️ 场地照片（支持多张，可设封面）</label>
+                  {([...existingImages, ...imagePreviews]).length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                      {existingImages.map((url, i) => (
+                        <div key={`e-${i}`} className={`relative rounded-xl overflow-hidden group ${coverIndex === i ? 'ring-2 ring-brand-500' : ''}`}>
+                          <img src={url} alt="" className="w-full h-28 object-cover" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
+                            {coverIndex !== i && <button type="button" onClick={() => setCoverIndex(i)} className="px-2 py-1 rounded-lg bg-brand-500 text-black text-xs font-semibold">设为封面</button>}
+                            {coverIndex === i && <span className="px-2 py-1 rounded-lg bg-brand-500/80 text-black text-xs font-semibold">★ 封面</span>}
+                            <button type="button" onClick={() => removeExistingImage(i)} className="p-1 rounded-lg bg-red-500 text-white"><X className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                      {imagePreviews.map((url, i) => (
+                        <div key={`n-${i}`} className={`relative rounded-xl overflow-hidden group ${coverIndex === existingImages.length + i ? 'ring-2 ring-brand-500' : ''}`}>
+                          <img src={url} alt="" className="w-full h-28 object-cover" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100">
+                            {coverIndex !== existingImages.length + i && <button type="button" onClick={() => setCoverIndex(existingImages.length + i)} className="px-2 py-1 rounded-lg bg-brand-500 text-black text-xs font-semibold">设为封面</button>}
+                            {coverIndex === existingImages.length + i && <span className="px-2 py-1 rounded-lg bg-brand-500/80 text-black text-xs font-semibold">★ 封面</span>}
+                            <button type="button" onClick={() => removeNewImage(i)} className="p-1 rounded-lg bg-red-500 text-white"><X className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label className="flex items-center justify-center gap-2 px-4 py-8 rounded-xl bg-white/5 border-2 border-dashed border-white/10 cursor-pointer hover:border-brand-500/30 hover:bg-white/[0.07] transition-all text-stone-500 hover:text-stone-300"><Upload className="w-5 h-5" />点击上传照片（可多选）<input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" /></label>
                 </div>
                 <div><label className="block text-sm text-stone-400 mb-1.5">📝 简介</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className={`${iCls} resize-none`} placeholder="场地环境、器材、训练氛围..." /></div>
                 <button onClick={() => saveLocation.mutate()} disabled={!name.trim() || isUploading} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 text-black font-bold hover:from-brand-400 transition-all disabled:opacity-50">{isUploading ? '上传中...' : editingId ? '保存修改' : '添加集训地点'}</button>
@@ -453,7 +502,14 @@ export function TrainingPage() {
                         className={`glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] group ${isActive ? 'ring-2 ring-brand-500/60 shadow-lg shadow-brand-500/10' : 'hover:border-white/10'}`}
                         onClick={() => { if (hasCoords) { setActiveSpot(loc); window.scrollTo({ top: 250, behavior: 'smooth' }); } }}>
                         <div className="relative">
-                          {loc.image_url ? <img src={loc.image_url} alt={loc.name} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-40 bg-white/[0.03] flex items-center justify-center"><Dumbbell className="w-12 h-12 text-stone-800" /></div>}
+                          {loc.image_url ? (
+                            <div className="relative">
+                              <img src={loc.image_url} alt={loc.name} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
+                              {(loc.images?.length || 0) > 1 && (
+                                <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 text-white text-[10px] font-semibold">{loc.images!.length} 张</span>
+                              )}
+                            </div>
+                          ) : <div className="w-full h-40 bg-white/[0.03] flex items-center justify-center"><Dumbbell className="w-12 h-12 text-stone-800" /></div>}
                           {hasCoords && <div className="absolute top-3 left-3 w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg" style={{ background: `linear-gradient(135deg,${MARKER_COLORS[spotIdx][0]},${MARKER_COLORS[spotIdx][1]})` }}>{spotIdx + 1}</div>}
                           {!hasCoords && isAdmin && <div className="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-amber-500/90 text-black text-[10px] font-bold">未标注</div>}
                         </div>
