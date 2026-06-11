@@ -846,19 +846,16 @@ function RankingTab({ athletes, updateRankScore, toggleUnknownPower }: {
             const rank = rawRank && rawRank > 0 ? rawRank : null;
             const power = !a.is_unknown_power && rank ? computePowerLevel(rank) : null;
             return (
-              <div key={a.id} className={`glass rounded-xl px-4 py-3 flex items-center gap-3 ${a.is_unknown_power ? 'opacity-60' : ''}`}>
+              <div key={a.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">
                 <span className="text-stone-500 text-sm w-6 text-right shrink-0">{i + 1}</span>
                 <span className="text-white text-sm font-medium min-w-0 truncate flex-1">
                   {a.name}
                   {a.codename && <span className="text-brand-400 ml-1.5 text-xs">「{a.codename}」</span>}
-                  {a.is_unknown_power && <span className="text-amber-400 ml-1.5 text-xs">实力未知</span>}
                 </span>
-                <label className="flex items-center gap-1 text-xs text-stone-500 shrink-0 cursor-pointer select-none">
-                  <input type="checkbox" checked={!!a.is_unknown_power}
-                    onChange={e => toggleUnknownPower.mutate({ id: a.id, value: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded accent-amber-500" />
-                  未知
-                </label>
+                <button
+                  onClick={() => toggleUnknownPower.mutate({ id: a.id, value: !a.is_unknown_power })}
+                  className={`text-xs px-2 py-1 rounded-lg shrink-0 transition-all ${a.is_unknown_power ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-stone-600 hover:text-stone-400'}`}
+                >实力未知</button>
                 <input
                   type="number"
                   min="0"
