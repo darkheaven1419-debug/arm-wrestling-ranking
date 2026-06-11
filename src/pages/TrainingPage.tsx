@@ -518,7 +518,10 @@ export function TrainingPage() {
                               )}
                             </div>
                           ) : <div className="w-full h-40 bg-white/[0.03] flex items-center justify-center"><Dumbbell className="w-12 h-12 text-stone-800" /></div>}
-                          {hasCoords && <div className="absolute top-3 left-3 w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg" style={{ background: `linear-gradient(135deg,${MARKER_COLORS[spotIdx][0]},${MARKER_COLORS[spotIdx][1]})` }}>{spotIdx + 1}</div>}
+                          {hasCoords && (
+                            <div className="absolute top-3 left-3 w-3 h-3 rounded-full border-2 border-white/80 shadow-lg"
+                              style={{ background: `linear-gradient(145deg,${MARKER_COLORS[spotIdx][0]},${MARKER_COLORS[spotIdx][1]})` }} />
+                          )}
                           {!hasCoords && isAdmin && <div className="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-amber-500/90 text-black text-[10px] font-bold">未标注</div>}
                         </div>
                         <div className="p-4">
