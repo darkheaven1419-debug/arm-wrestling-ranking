@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Medal, User, MapPin, Scale } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Medal, User, MapPin, Scale, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
@@ -9,6 +10,7 @@ import { computePowerLevel } from '@/lib/powerLevel';
 
 export function RankingPage() {
   const { hand, weightClass } = useParams<{ hand: string; weightClass: string }>();
+  const [search, setSearch] = useState('');
 
   const { data: athletes, isLoading } = useQuery({
     queryKey: ['athletes', hand, weightClass],
@@ -58,6 +60,12 @@ export function RankingPage() {
               </p>
             </div>
           </div>
+          <div className="mt-4 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all"
+              placeholder="搜索运动员姓名…" />
+          </div>
         </div>
 
         {isLoading && (
@@ -91,10 +99,12 @@ export function RankingPage() {
 
         {!isLoading && athletes && athletes.length > 0 && (() => {
           const rankField = hand === '左手' ? 'rank_score_left' : 'rank_score';
-          const hasRankings = athletes.some(a => ((a as any)[rankField] ?? 0) > 0);
+          const filtered = search.trim() ? athletes.filter(a => a.name.includes(search.trim())) : athletes;
+          const hasRankings = filtered.some(a => ((a as any)[rankField] ?? 0) > 0);
           return (
           <motion.div className="space-y-3" initial="hidden" animate="visible">
-            {athletes.map((athlete, index) => (
+            {filtered.length === 0 && <p className="text-center text-stone-500 py-8">未找到匹配的运动员</p>}
+            {filtered.map((athlete, index) => (
               <motion.div
                 key={athlete.id}
                 initial={{ opacity: 0, y: 10 }}
