@@ -1,0 +1,1 @@
+ALTER TABLE athletes ADD COLUMN IF NOT EXISTS is_unknown_power BOOLEAN DEFAULT false;

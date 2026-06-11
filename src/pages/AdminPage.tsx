@@ -122,6 +122,14 @@ export function AdminPage() {
     onError: (e: Error) => toast.error(`更新失败: ${e.message}`),
   });
 
+  const toggleUnknownPower = useMutation({
+    mutationFn: async ({ id, value }: { id: number; value: boolean }) => {
+      const { error } = await supabase.from('athletes').update({ is_unknown_power: value }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); },
+  });
+
   const applyAdmin = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -409,7 +417,7 @@ export function AdminPage() {
         )}
 
         {activeTab === 'ranking' && (
-          <RankingTab athletes={approved} updateRankScore={updateRankScore} />
+          <RankingTab athletes={approved} updateRankScore={updateRankScore} toggleUnknownPower={toggleUnknownPower} />
         )}
 
         {activeTab === 'applications' && isSuperAdmin && (
@@ -747,9 +755,10 @@ function AdminsTab(props: {
   );
 }
 
-function RankingTab({ athletes, updateRankScore }: {
+function RankingTab({ athletes, updateRankScore, toggleUnknownPower }: {
   athletes: Athlete[];
   updateRankScore: { mutate: (v: { id: number; rank_score?: number; rank_score_left?: number }) => void; isPending: boolean };
+  toggleUnknownPower: { mutate: (v: { id: number; value: boolean }) => void; isPending: boolean };
 }) {
   const [hand, setHand] = useState<string | null>(null);
   const [weightClass, setWeightClass] = useState<string | null>(null);
@@ -759,7 +768,13 @@ function RankingTab({ athletes, updateRankScore }: {
   const groupAthletes = hand && weightClass
     ? athletes
         .filter(a => a.weight_class === weightClass)
-        .sort((a, b) => ((a as any)[rankField] ?? 999) - ((b as any)[rankField] ?? 999))
+        .sort((a, b) => {
+          // 实力未知的排到最后
+          if (a.is_unknown_power && !b.is_unknown_power) return 1;
+          if (!a.is_unknown_power && b.is_unknown_power) return -1;
+          // 都有排名或都未知时按分数排
+          return ((a as any)[rankField] ?? 999) - ((b as any)[rankField] ?? 999);
+        })
     : [];
 
   const saveRank = (id: number, rank: number) => {
@@ -829,22 +844,29 @@ function RankingTab({ athletes, updateRankScore }: {
           {groupAthletes.map((a, i) => {
             const rawRank = (a as any)[rankField];
             const rank = rawRank && rawRank > 0 ? rawRank : null;
-            const power = rank ? computePowerLevel(rank) : null;
+            const power = !a.is_unknown_power && rank ? computePowerLevel(rank) : null;
             return (
-              <div key={a.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3">
+              <div key={a.id} className={`glass rounded-xl px-4 py-3 flex items-center gap-3 ${a.is_unknown_power ? 'opacity-60' : ''}`}>
                 <span className="text-stone-500 text-sm w-6 text-right shrink-0">{i + 1}</span>
                 <span className="text-white text-sm font-medium min-w-0 truncate flex-1">
                   {a.name}
                   {a.codename && <span className="text-brand-400 ml-1.5 text-xs">「{a.codename}」</span>}
+                  {a.is_unknown_power && <span className="text-amber-400 ml-1.5 text-xs">实力未知</span>}
                 </span>
-                <span className="text-stone-500 text-xs shrink-0">排名</span>
+                <label className="flex items-center gap-1 text-xs text-stone-500 shrink-0 cursor-pointer select-none">
+                  <input type="checkbox" checked={!!a.is_unknown_power}
+                    onChange={e => toggleUnknownPower.mutate({ id: a.id, value: e.target.checked })}
+                    className="w-3.5 h-3.5 rounded accent-amber-500" />
+                  未知
+                </label>
                 <input
                   type="number"
                   min="0"
                   max="99"
                   defaultValue={rank ?? ''}
                   placeholder="--"
-                  className="w-16 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm text-center focus:outline-none focus:border-brand-500/50 transition-all"
+                  disabled={!!a.is_unknown_power}
+                  className="w-16 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm text-center focus:outline-none focus:border-brand-500/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   onBlur={e => {
                     const v = parseInt(e.target.value) || 0;
                     saveRank(a.id, v);
@@ -858,7 +880,7 @@ function RankingTab({ athletes, updateRankScore }: {
                   }}
                 />
                 <span className="text-xs w-20 text-right shrink-0">
-                  {power !== null ? <span className="text-brand-400 font-bold">战力 {power}</span> : <span className="text-stone-600">-</span>}
+                  {power !== null ? <span className="text-brand-400 font-bold">战力 {power}</span> : a.is_unknown_power ? <span className="text-amber-400">未知</span> : <span className="text-stone-600">-</span>}
                 </span>
               </div>
             );
