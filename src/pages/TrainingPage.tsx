@@ -9,6 +9,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/lib/supabase';
 import { searchPlaces, type SearchResult } from '@/lib/geocode';
+import { compressImage } from '@/lib/image';
 import type { TrainingLocation } from '@/types';
 
 const BEIJING_CENTER: [number, number] = [39.915, 116.404];
@@ -259,9 +260,10 @@ export function TrainingPage() {
         // Upload all new images
         const uploadedUrls: string[] = [];
         for (const file of imageFiles) {
-          const ext = file.name.split('.').pop();
+          const compressed = await compressImage(file);
+          const ext = 'jpg';
           const path = `training/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-          const { error: upErr } = await supabase.storage.from('training-images').upload(path, file);
+          const { error: upErr } = await supabase.storage.from('training-images').upload(path, compressed);
           if (upErr) throw new Error(`图片 ${file.name} 上传失败: ${upErr.message}`);
           const { data: { publicUrl } } = supabase.storage.from('training-images').getPublicUrl(path);
           uploadedUrls.push(publicUrl);
