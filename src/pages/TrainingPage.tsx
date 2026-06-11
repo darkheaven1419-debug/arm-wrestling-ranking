@@ -20,26 +20,71 @@ const MARKER_COLORS = [
   ['#ec4899','#db2777'],['#6366f1','#4f46e5'],
 ];
 
-// ─── 集训点标记 ───
+// ─── 集训点标记（渐变圆点 + 定位锚点）───
 const createMarkerIcon = (idx: number, active: boolean) => {
   const [c1, c2] = MARKER_COLORS[idx % MARKER_COLORS.length];
-  const s = active ? 46 : 38;
-  const g = active ? 24 : 10;
+  const size = active ? 42 : 34;
+  const inner = active ? 28 : 22;
+  const fontSize = active ? 14 : 11;
   return L.divIcon({
     className: 'custom-marker',
-    html: `<div style="position:relative;width:${s}px;height:${s+10}px;"><div style="position:absolute;top:${s/2-g/2}px;left:${s/2-g/2}px;width:${g}px;height:${g}px;border-radius:50%;background:${c1};opacity:${active?0.35:0.15};animation:pulse-ring 2s ease-out infinite;"></div><div style="position:absolute;top:0;left:0;width:${s}px;height:${s}px;border-radius:${active?14:12}px;background:linear-gradient(135deg,${c1},${c2});box-shadow:0 4px ${active?20:10}px ${c1}${active?'66':'33'};display:flex;align-items:center;justify-content:center;transform:rotate(45deg);border:2px solid rgba(255,255,255,${active?0.9:0.7});transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);"><span style="color:#fff;font-size:${active?16:13}px;font-weight:800;transform:rotate(-45deg);text-shadow:0 1px 2px rgba(0,0,0,0.3);font-family:system-ui,sans-serif;">${idx+1}</span></div><div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:3px;height:10px;background:${c2};border-radius:0 0 2px 2px;opacity:${active?1:0.7};"></div></div>`,
-    iconSize: [s, s+10], iconAnchor: [s/2, s+10], popupAnchor: [0, -s-10],
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));">
+        <div style="
+          width:${size}px;height:${size}px;border-radius:50%;
+          background:linear-gradient(145deg,${c1},${c2});
+          display:flex;align-items:center;justify-content:center;
+          border:3px solid #fff;
+          box-shadow:0 2px 12px ${c1}44;
+          transition:all 0.25s ease;
+          ${active ? `animation:marker-bob 0.6s ease;` : ''}
+        ">
+          <div style="
+            width:${inner}px;height:${inner}px;border-radius:50%;
+            background:rgba(255,255,255,0.92);
+            display:flex;align-items:center;justify-content:center;
+          ">
+            <span style="
+              color:${c2};font-size:${fontSize}px;font-weight:800;
+              font-family:system-ui,-apple-system,sans-serif;
+              line-height:1;
+            ">${idx + 1}</span>
+          </div>
+        </div>
+        <div style="
+          width:${active ? 8 : 6}px;height:${active ? 8 : 6}px;border-radius:50%;
+          background:${c2};margin-top:1px;
+          box-shadow:0 1px 3px rgba(0,0,0,0.3);
+        "></div>
+      </div>`,
+    iconSize: [size + 8, size + 16],
+    iconAnchor: [(size + 8) / 2, size + 16],
+    popupAnchor: [0, -(size + 16)],
   });
 };
 
-// ─── 选址标记（红色大头针）───
+// ─── 选址标记（红色脉冲圆点）───
 const createPickerIcon = () => L.divIcon({
   className: 'custom-marker',
-  html: `<div style="position:relative;width:36px;height:48px;">
-    <div style="position:absolute;top:0;left:3px;width:30px;height:30px;border-radius:50% 50% 50% 0;background:linear-gradient(135deg,#ef4444,#dc2626);transform:rotate(-45deg);box-shadow:0 4px 16px rgba(239,68,68,0.5);border:2px solid #fff;"></div>
-    <div style="position:absolute;top:8px;left:11px;width:8px;height:8px;border-radius:50%;background:#fff;transform:rotate(-45deg);"></div>
-  </div>`,
-  iconSize: [36, 48], iconAnchor: [12, 42], popupAnchor: [0, -42],
+  html: `
+    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 8px rgba(239,68,68,0.5));">
+      <div style="
+        width:28px;height:28px;border-radius:50%;
+        background:#ef4444;border:3px solid #fff;
+        box-shadow:0 0 0 8px rgba(239,68,68,0.25);
+        animation:picker-pulse 1.6s ease-out infinite;
+        display:flex;align-items:center;justify-content:center;
+      ">
+        <div style="width:8px;height:8px;border-radius:50%;background:#fff;"></div>
+      </div>
+      <div style="
+        width:5px;height:5px;border-radius:50%;
+        background:#dc2626;margin-top:1px;
+      "></div>
+    </div>`,
+  iconSize: [36, 40],
+  iconAnchor: [18, 40],
+  popupAnchor: [0, -40],
 });
 
 // ─── 搜索地点（Photon + Nominatim 双源）───
@@ -368,7 +413,7 @@ export function TrainingPage() {
           <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-900/85 backdrop-blur-sm border border-white/10 text-xs text-stone-300">
             <div className="flex -space-x-1">
               {spotsWithCoords.slice(0, 4).map((_, i) => (
-                <div key={i} className="w-4 h-4 rounded rotate-45 border border-white/20" style={{ background: `linear-gradient(135deg,${MARKER_COLORS[i][0]},${MARKER_COLORS[i][1]})` }} />
+                <div key={i} className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ background: `linear-gradient(145deg,${MARKER_COLORS[i][0]},${MARKER_COLORS[i][1]})` }} />
               ))}
             </div>
             <span>{spotsWithCoords.length} 个集训点</span>
@@ -430,6 +475,8 @@ export function TrainingPage() {
 
       <style>{`
         @keyframes pulse-ring { 0% { transform: scale(0.5); opacity: 0.5; } 100% { transform: scale(2.5); opacity: 0; } }
+        @keyframes marker-bob { 0% { transform: translateY(0); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0); } }
+        @keyframes picker-pulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); } 70% { box-shadow: 0 0 0 16px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
         .spot-popup .leaflet-popup-content-wrapper { border-radius: 14px; padding: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
         .spot-popup .leaflet-popup-content { margin: 10px 12px; }
         .spot-popup .leaflet-popup-tip { box-shadow: none; }
