@@ -149,7 +149,8 @@ export function TrainingPage() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
   const [contactPerson, setContactPerson] = useState(''); const [contactPhone, setContactPhone] = useState('');
-  const [schedule, setSchedule] = useState(''); const [description, setDescription] = useState('');
+  const [schedule, setSchedule] = useState(''); const [tableCount, setTableCount] = useState('');
+  const [description, setDescription] = useState('');
   const [organization, setOrganization] = useState(''); const [customOrg, setCustomOrg] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -169,7 +170,8 @@ export function TrainingPage() {
 
   const startEdit = (loc: TrainingLocation) => {
     setName(loc.name); setAddress(loc.address || ''); setContactPerson(loc.contact_person || '');
-    setContactPhone(loc.contact_phone || ''); setSchedule(loc.schedule || ''); setDescription(loc.description || '');
+    setContactPhone(loc.contact_phone || ''); setSchedule(loc.schedule || ''); setTableCount(loc.table_count?.toString() || '');
+    setDescription(loc.description || '');
     setExistingImages(loc.images?.length ? loc.images : (loc.image_url ? [loc.image_url] : []));
     setCoverIndex(loc.cover_index ?? 0); setEditingId(loc.id);
     const hasCoords = loc.latitude && loc.longitude;
@@ -182,7 +184,7 @@ export function TrainingPage() {
     setShowForm(true); setSearchQ(''); setSearchResults([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFiles([]); setImagePreviews([]); setExistingImages([]); setCoverIndex(0); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); setSearchError(''); setIsUploading(false); };
+  const resetForm = () => { setName(''); setAddress(''); setContactPerson(''); setContactPhone(''); setSchedule(''); setTableCount(''); setDescription(''); setOrganization(''); setCustomOrg(''); setImageFiles([]); setImagePreviews([]); setExistingImages([]); setCoverIndex(0); setEditingId(null); setLat(''); setLng(''); setShowForm(false); setPickerPos(null); setSearchQ(''); setSearchResults([]); setSearchError(''); setIsUploading(false); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -277,7 +279,8 @@ export function TrainingPage() {
           images: allImages.length > 0 ? allImages : null,
           cover_index: allImages.length > 0 ? coverIndex : 0,
           contact_person: contactPerson.trim() || null, contact_phone: contactPhone.trim() || null,
-          schedule: schedule.trim() || null, description: description.trim() || null,
+          schedule: schedule.trim() || null, table_count: tableCount ? parseInt(tableCount) : null,
+          description: description.trim() || null,
           organization: organization === '自定义' ? (customOrg.trim() || '自定义') : (organization || null),
           latitude: lat ? parseFloat(lat) : null, longitude: lng ? parseFloat(lng) : null,
         };
@@ -393,7 +396,10 @@ export function TrainingPage() {
                   <div><label className="block text-sm text-stone-400 mb-1.5">👤 负责人/教练</label><input type="text" value={contactPerson} onChange={e => setContactPerson(e.target.value)} className={iCls} placeholder="如：张教练" /></div>
                   <div><label className="block text-sm text-stone-400 mb-1.5">📞 联系电话</label><input type="text" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className={iCls} placeholder="方便联系咨询" /></div>
                 </div>
-                <div><label className="block text-sm text-stone-400 mb-1.5">🕐 训练时间</label><input type="text" value={schedule} onChange={e => setSchedule(e.target.value)} className={iCls} placeholder="如：每周二四六 19:00-22:00" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="block text-sm text-stone-400 mb-1.5">🕐 训练时间</label><input type="text" value={schedule} onChange={e => setSchedule(e.target.value)} className={iCls} placeholder="如：每周二四六 19:00-22:00" /></div>
+                  <div><label className="block text-sm text-stone-400 mb-1.5">🏓 桌子数量</label><input type="number" min="0" value={tableCount} onChange={e => setTableCount(e.target.value)} className={iCls} placeholder="如：3" /></div>
+                </div>
                 <div>
                   <label className="block text-sm text-stone-400 mb-1.5">🏛️ 所属组织</label>
                   <select value={organization} onChange={e => { setOrganization(e.target.value); if (e.target.value !== '自定义') setCustomOrg(''); }}
@@ -519,6 +525,7 @@ export function TrainingPage() {
                           <h3 className="text-base font-bold text-white mb-1.5 flex items-center gap-2">{loc.name}{isActive && <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />}</h3>
                           {loc.address && <p className="text-xs text-stone-400 mb-1 flex items-start gap-1"><MapPin className="w-3 h-3 mt-0.5 shrink-0" />{loc.address}</p>}
                           {loc.schedule && <p className="text-xs text-stone-500 mb-1">🕐 {loc.schedule}</p>}
+                          {(loc.table_count != null) && <p className="text-xs text-stone-500 mb-1">🏓 {loc.table_count} 张桌子</p>}
                           {loc.organization && <p className="text-xs text-stone-500 mb-1">🏛️ {loc.organization}</p>}
                           {loc.contact_person && <p className="text-xs text-stone-500 mb-1 flex items-center gap-1"><User className="w-3 h-3" />{loc.contact_person}{loc.contact_phone && <span className="ml-1.5 text-stone-600">📞 {loc.contact_phone}</span>}</p>}
                           {loc.description && <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed"><FileText className="w-3 h-3 inline mr-1 opacity-60" />{loc.description}</p>}

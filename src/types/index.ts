@@ -46,6 +46,7 @@ export interface TrainingLocation {
   image_url: string | null;
   images?: string[];
   cover_index?: number;
+  table_count: number | null;
   contact_person: string | null;
   contact_phone: string | null;
   schedule: string | null;
