@@ -799,7 +799,7 @@ function RankingTab({ athletes, updateRankScore }: {
         <p className="text-xs text-stone-500 mb-4">选择体重级别</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {classes.map(wc => {
-            const count = athletes.filter(a => a.hand === hand && a.weight_class === wc).length;
+            const count = athletes.filter(a => a.weight_class === wc).length;
             const icon = WEIGHT_CLASSES.find(w => w.value === wc)?.icon || '💪';
             return (
               <button key={wc} onClick={() => setWeightClass(wc)}
