@@ -162,6 +162,16 @@ export function AdminPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const promoteAthleteToAdmin = useMutation({
+    mutationFn: async ({ athleteId, name }: { athleteId: number; name?: string }) => {
+      const { data, error } = await supabase.rpc('promote_athlete_to_admin', { p_athlete_id: athleteId, p_admin_name: name || null });
+      if (error) throw new Error(error.message);
+      if (data?.startsWith('error:')) throw new Error(data.replace('error: ', ''));
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('运动员已设为管理员'); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const [pwEmail, setPwEmail] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const handleResetPassword = async () => {
@@ -227,7 +237,7 @@ export function AdminPage() {
       const { data: uid, error: rpcErr } = await supabase.rpc('get_user_id_by_email', { target_email: email.trim().toLowerCase() });
       if (rpcErr) throw new Error(rpcErr.message);
       if (!uid || (uid as string).startsWith('error:')) throw new Error('未找到该邮箱的用户');
-      const { error } = await supabase.from('athletes').update({ user_id: uid as string }).eq('id', athleteId);
+      const { error } = await supabase.from('athletes').update({ user_id: uid as string, user_email: email.trim().toLowerCase() }).eq('id', athleteId);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-athletes'] }); toast.success('账号已关联'); },
@@ -381,6 +391,9 @@ export function AdminPage() {
                         {!a.user_id && <LinkAccountBtn athlete={a} linkAthleteUser={linkAthleteUser} />}
                       </div>
                       <div className="flex items-center gap-3">
+                        {isSuperAdmin && a.user_id && !adminUsers?.some(au => au.user_id === a.user_id) && (
+                          <button onClick={() => promoteAthleteToAdmin.mutate({ athleteId: a.id, name: a.name })} disabled={promoteAthleteToAdmin.isPending} className="text-xs px-2 py-1 rounded-lg bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 transition-colors disabled:opacity-50">👑 设为管理员</button>
+                        )}
                         <button onClick={() => toggleFeatured.mutate({ id: a.id, featured: !a.is_featured })} disabled={toggleFeatured.isPending} className={`text-xs px-2 py-1 rounded-lg transition-colors ${a.is_featured ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-stone-500 hover:text-stone-300'}`}>
                           {a.is_featured ? '⭐ 已精选' : '☆ 设为精选'}
                         </button>
@@ -591,7 +604,7 @@ export function AdminPage() {
           resetPassword={resetPassword} setResetPassword={setResetPassword}
           handleResetPassword={handleResetPassword}
           adminUsers={adminUsers} removeAdmin={removeAdmin} updateAdminName={updateAdminName}
-          approved={approved}
+          approved={approved} promoteAthleteToAdmin={promoteAthleteToAdmin}
         />}
       </div>
     </div>
@@ -666,44 +679,47 @@ function AdminsTab(props: {
   removeAdmin: { mutate: (id: number) => void; isPending: boolean };
   updateAdminName: { mutate: (v: { id: number; name: string }) => void; isPending: boolean };
   approved: Athlete[];
+  promoteAthleteToAdmin: { mutate: (v: { athleteId: number; name?: string }) => void; isPending: boolean };
 }) {
   const { addAdminByEmail, newAdminEmail, setNewAdminEmail,
     pwEmail, setPwEmail, resetPassword, setResetPassword, handleResetPassword,
-    adminUsers, removeAdmin, updateAdminName, approved } = props;
+    adminUsers, removeAdmin, updateAdminName, approved, promoteAthleteToAdmin } = props;
 
-  // Show athletes who have an email (submitted while logged in)
-  const athletesWithEmail = approved.filter(a => a.user_email);
+  // Show athletes who have a linked account (user_id or user_email)
+  const athletesWithAccount = approved.filter(a => a.user_id && !adminUsers?.some(au => au.user_id === a.user_id));
 
   return (
     <div>
       <div className="glass rounded-2xl p-5 mb-6">
         <h3 className="text-sm font-semibold text-white mb-3"><UserPlus className="w-4 h-4 text-brand-400 inline mr-2" />添加管理员</h3>
         <p className="text-xs text-stone-500 mb-3">从已提交信息的运动员中选择，一键设为管理员</p>
-        {athletesWithEmail.length > 0 ? (
+        {athletesWithAccount.length > 0 ? (
           <div className="flex gap-3 flex-wrap">
             <select
               className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-stone-900 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-500/50 appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '2rem' }}
               onChange={e => {
                 const a = approved.find(ath => ath.id === parseInt(e.target.value));
-                if (a?.user_email) {
+                if (!a) return;
+                if (a.user_email) {
                   addAdminByEmail.mutate({ email: a.user_email, name: a.name });
-                  toast.success(`${a.name} 已设为管理员`);
+                } else {
+                  promoteAthleteToAdmin.mutate({ athleteId: a.id, name: a.name });
                 }
                 e.target.value = '';
               }}
               defaultValue=""
             >
               <option value="" disabled className="bg-stone-900 text-stone-400">选择运动员...</option>
-              {athletesWithEmail.map(a => (
+              {athletesWithAccount.map(a => (
                 <option key={a.id} value={a.id} className="bg-stone-900 text-white">
-                  {a.name}{a.codename ? ` (${a.codename})` : ''} · {a.user_email}
+                  {a.name}{a.codename ? ` (${a.codename})` : ''}{a.user_email ? ` · ${a.user_email}` : ' · 已关联账号'}
                 </option>
               ))}
             </select>
           </div>
         ) : (
-          <p className="text-amber-400 text-xs">暂无已关联邮箱的运动员。请让运动员登录后提交信息，或使用下方手动输入。</p>
+          <p className="text-amber-400 text-xs">暂无已关联账号的运动员。请让运动员登录后提交信息，或使用下方手动输入。</p>
         )}
         <p className="text-xs text-stone-600 mt-3">手动输入邮箱：</p>
         <div className="flex gap-3 mt-2">
