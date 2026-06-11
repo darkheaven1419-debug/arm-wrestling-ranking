@@ -131,6 +131,11 @@ function SpotMarker({ loc, index, isActive, onClick }: { loc: TrainingLocation; 
           {loc.contact_person && <p className="text-xs text-gray-500 mb-1">👤 {loc.contact_person}{loc.contact_phone ? ` · ${loc.contact_phone}` : ''}</p>}
           {loc.schedule && <p className="text-xs text-gray-500">🕐 {loc.schedule}</p>}
           {loc.organization && <p className="text-xs text-gray-500">🏛️ {loc.organization}</p>}
+          <a
+            href={`https://uri.amap.com/marker?position=${loc.longitude},${loc.latitude}&name=${encodeURIComponent(loc.name)}&callnative=1`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-500 text-white hover:bg-brand-400 transition-colors no-underline"
+          >🧭 导航到这里</a>
         </div>
       </Popup>
     </Marker>
@@ -249,12 +254,6 @@ export function TrainingPage() {
     },
   });
 
-  const approveLocation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => { const { error } = await supabase.from('training_locations').update({ status }).eq('id', id); if (error) throw error; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['training-locations'] }); toast.success('已更新'); },
-    onError: () => toast.error('操作失败'),
-  });
-
   const saveLocation = useMutation({
     mutationFn: async () => {
       setIsUploading(true);
@@ -286,7 +285,7 @@ export function TrainingPage() {
         };
         const { error } = editingId
           ? await supabase.from('training_locations').update(payload).eq('id', editingId)
-          : await supabase.from('training_locations').insert(payload);
+          : await supabase.from('training_locations').insert({ ...payload, status: 'approved' });
         if (error) throw error;
       } finally {
         setIsUploading(false);
@@ -532,15 +531,22 @@ export function TrainingPage() {
                           {loc.organization && <p className="text-xs text-stone-500 mb-1">🏛️ {loc.organization}</p>}
                           {loc.contact_person && <p className="text-xs text-stone-500 mb-1 flex items-center gap-1"><User className="w-3 h-3" />{loc.contact_person}{loc.contact_phone && <span className="ml-1.5 text-stone-600">📞 {loc.contact_phone}</span>}</p>}
                           {loc.description && <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed"><FileText className="w-3 h-3 inline mr-1 opacity-60" />{loc.description}</p>}
-                          {loc.status === 'pending' && isAdmin && (
-                            <div className="flex gap-2 mt-3"><button onClick={(e) => { e.stopPropagation(); approveLocation.mutate({ id: loc.id, status: 'approved' }); }} disabled={approveLocation.isPending} className="text-xs px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-all">✓ 通过</button><button onClick={(e) => { e.stopPropagation(); approveLocation.mutate({ id: loc.id, status: 'rejected' }); }} disabled={approveLocation.isPending} className="text-xs px-3 py-1 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all">✕ 拒绝</button></div>
-                          )}
-                          {isAdmin && (
-                            <div className="flex gap-3 mt-3 pt-3 border-t border-white/5">
-                              <button onClick={(e) => { e.stopPropagation(); startEdit(loc); }} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">✏️ 编辑</button>
-                              <button onClick={(e) => { e.stopPropagation(); deleteLocation.mutate(loc.id); }} disabled={deleteLocation.isPending} className="text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
+                            {hasCoords && (
+                              <a
+                                href={`https://uri.amap.com/marker?position=${loc.longitude},${loc.latitude}&name=${encodeURIComponent(loc.name)}&callnative=1`}
+                                target="_blank" rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 transition-all"
+                              ><Navigation className="w-3 h-3" />导航</a>
+                            )}
+                            {isAdmin && (
+                              <>
+                                <button onClick={(e) => { e.stopPropagation(); startEdit(loc); }} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">✏️ 编辑</button>
+                                <button onClick={(e) => { e.stopPropagation(); deleteLocation.mutate(loc.id); }} disabled={deleteLocation.isPending} className="text-xs text-red-400 hover:text-red-300 transition-colors"><X className="w-3 h-3 inline" /> 删除</button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     );
