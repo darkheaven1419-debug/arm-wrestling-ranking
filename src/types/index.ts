@@ -49,6 +49,8 @@ export interface TrainingLocation {
   schedule: string | null;
   description: string | null;
   status?: string;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 }
 
