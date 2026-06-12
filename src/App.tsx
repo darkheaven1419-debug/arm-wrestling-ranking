@@ -6,6 +6,7 @@ const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.H
 const RankingPage = lazy(() => import('@/pages/RankingPage').then(m => ({ default: m.RankingPage })));
 const AthletePage = lazy(() => import('@/pages/AthletePage').then(m => ({ default: m.AthletePage })));
 const SubmitPage = lazy(() => import('@/pages/SubmitPage').then(m => ({ default: m.SubmitPage })));
+const MapPage = lazy(() => import('@/pages/MapPage').then(m => ({ default: m.MapPage })));
 const TrainingPage = lazy(() => import('@/pages/TrainingPage').then(m => ({ default: m.TrainingPage })));
 const EventsPage = lazy(() => import('@/pages/EventsPage').then(m => ({ default: m.EventsPage })));
 const ArticlesPage = lazy(() => import('@/pages/ArticlesPage').then(m => ({ default: m.ArticlesPage })));
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/ranking/:hand/:weightClass" element={<Suspense fallback={<PageLoader />}><RankingPage /></Suspense>} />
         <Route path="/athlete/:athleteId" element={<Suspense fallback={<PageLoader />}><AthletePage /></Suspense>} />
         <Route path="/submit" element={<Suspense fallback={<PageLoader />}><SubmitPage /></Suspense>} />
+        <Route path="/map" element={<Suspense fallback={<PageLoader />}><MapPage /></Suspense>} />
         <Route path="/training" element={<Suspense fallback={<PageLoader />}><TrainingPage /></Suspense>} />
         <Route path="/events" element={<Suspense fallback={<PageLoader />}><EventsPage /></Suspense>} />
         <Route path="/articles" element={<Suspense fallback={<PageLoader />}><ArticlesPage /></Suspense>} />
