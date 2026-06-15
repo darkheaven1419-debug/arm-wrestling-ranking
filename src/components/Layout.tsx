@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { ChevronUp } from 'lucide-react';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { BottomNav } from './BottomNav';
 
 export function Layout() {
   const [showTop, setShowTop] = useState(false);
@@ -19,6 +20,7 @@ export function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <BottomNav />
       {showTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

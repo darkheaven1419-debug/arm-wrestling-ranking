@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import { computePowerLevel, getPowerBadge } from '@/lib/powerLevel';
 import { useAthleteView } from '@/lib/useAthleteView';
+import { useDocumentTitle } from '@/lib/useDocumentTitle';
 import { AthleteEditModal } from '@/components/AthleteEditModal';
 import type { Athlete, BattleRecord } from '@/types';
 
@@ -75,6 +76,7 @@ export function AthletePage() {
   const powerLevel = athlete.is_unknown_power ? null : (rank ? computePowerLevel(rank) : ((rankScore ?? 0) > 0 ? computePowerLevel(rankScore!) : 0));
   const badge = powerLevel ? getPowerBadge(powerLevel) : null;
   const isOwner = currentUserId && athlete.user_id === currentUserId;
+  useDocumentTitle(athlete ? `${athlete.name}${athlete.codename ? '「'+athlete.codename+'」' : ''}·${athlete.weight_class}` : null);
 
   const battles = allBattles || [];
   const wins = battles.filter(b => b.winner_id === athlete.id).length;
