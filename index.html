@@ -23,7 +23,19 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); });
+        window.addEventListener('load', () => {
+          // Discover base path from Vite-built module script src
+          var base = '/';
+          var modScript = document.querySelector('script[type="module"]');
+          if (modScript) {
+            var m = modScript.src.match(/^(.+\/)assets\//);
+            if (m) base = m[1];
+          }
+          navigator.serviceWorker.register(base + 'sw.js', { scope: base })
+            .catch(function(err) {
+              console.warn('ServiceWorker registration failed:', err.message);
+            });
+        });
       }
     </script>
   </body>
