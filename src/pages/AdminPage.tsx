@@ -1,14 +1,18 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, Crown, Send, Bell, Calendar, BookOpen } from 'lucide-react';
+import { ArrowLeft, LogOut, Check, X as XIcon, RefreshCw, Shield, Crown, Send, Bell, Calendar, BookOpen, Search, Globe, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import type { Athlete, ArmEvent } from '@/types';
 import { RankingTab } from '@/components/admin/RankingTab';
 import { AdminsTab } from '@/components/admin/AdminsTab';
 import type { AdminUser } from '@/components/admin/AdminsTab';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { searchPlaces, type SearchResult } from '@/lib/geocode';
 interface AdminApp { id: number; user_id: string; status: string; created_at: string; }
 
 export function AdminPage() {
@@ -27,6 +31,13 @@ export function AdminPage() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [evtImages, setEvtImages] = useState<File[]>([]);
   const [evtImagePreviews, setEvtImagePreviews] = useState<string[]>([]);
+  const [evtLat, setEvtLat] = useState(''); const [evtLng, setEvtLng] = useState('');
+  const [evtSearchQ, setEvtSearchQ] = useState('');
+  const [evtSearchResults, setEvtSearchResults] = useState<SearchResult[]>([]);
+  const [evtSearchError, setEvtSearchError] = useState('');
+  const [evtSearching, setEvtSearching] = useState(false);
+  const [evtShowMap, setEvtShowMap] = useState(false);
+  const evtSearchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -218,11 +229,12 @@ export function AdminPage() {
         description: evtDesc.trim() || null, weight_classes: classes,
         poster_url: uploadedUrls[0] || null, poster_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
         contact_info: evtContact.trim() || null,
-        registration_fee: evtFee.trim(), prizes: evtPrizes.trim(), contact_person: evtContactPerson.trim()
+        registration_fee: evtFee.trim(), prizes: evtPrizes.trim(), contact_person: evtContactPerson.trim(),
+        latitude: evtLat ? parseFloat(evtLat) : null, longitude: evtLng ? parseFloat(evtLng) : null
       });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson(''); setEvtImages([]); setEvtImagePreviews([]); toast.success('赛事已添加'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['events'] }); queryClient.invalidateQueries({ queryKey: ['home-events'] }); setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses(''); setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson(''); setEvtImages([]); setEvtImagePreviews([]); setEvtLat(''); setEvtLng(''); setEvtSearchQ(''); setEvtSearchResults([]); setEvtSearchError(''); setEvtShowMap(false); toast.success('赛事已添加'); },
     onError: (e: Error) => { if (e.message !== 'validation') toast.error(`添加失败: ${e.message}`); },
   });
 
@@ -462,16 +474,19 @@ export function AdminPage() {
             setEvtDesc(evt.description || ''); setEvtClasses((evt.weight_classes || []).join(', '));
             setEvtContact(evt.contact_info || ''); setEvtFee(evt.registration_fee || '');
             setEvtPrizes(evt.prizes || ''); setEvtContactPerson(evt.contact_person || '');
+            setEvtLat(evt.latitude?.toString() || ''); setEvtLng(evt.longitude?.toString() || '');
             const existingUrls = evt.poster_urls?.length ? evt.poster_urls : (evt.poster_url ? [evt.poster_url] : []);
             setExistingPosterUrls(existingUrls);
             setEvtImagePreviews(existingUrls);
             setEvtImages([]);
+            setEvtSearchQ(''); setEvtSearchResults([]); setEvtShowMap(false);
             setEditingEventId(evt.id); window.scrollTo({ top: 0, behavior: 'smooth' });
           };
           const resetEvtForm = () => {
             setEvtTitle(''); setEvtDate(''); setEvtLocation(''); setEvtDesc(''); setEvtClasses('');
             setEvtContact(''); setEvtFee(''); setEvtPrizes(''); setEvtContactPerson('');
             setEvtImages([]); setEvtImagePreviews([]); setExistingPosterUrls([]); setEditingEventId(null);
+            setEvtLat(''); setEvtLng(''); setEvtSearchQ(''); setEvtSearchResults([]); setEvtSearchError(''); setEvtShowMap(false);
           };
           const handleEvtSubmit = async () => {
             if (editingEventId && editingEventId > 0) {
@@ -494,11 +509,39 @@ export function AdminPage() {
                 registration_fee: evtFee.trim(), prizes: evtPrizes.trim(), contact_person: evtContactPerson.trim(),
                 poster_url: finalUrls[0] || null,
                 poster_urls: finalUrls.length > 0 ? finalUrls : [],
+                latitude: evtLat ? parseFloat(evtLat) : null, longitude: evtLng ? parseFloat(evtLng) : null,
               });
             } else {
               addEvent.mutate();
             }
           };
+          const handleEvtSearch = (q: string) => {
+            setEvtSearchQ(q); setEvtSearchError('');
+            clearTimeout(evtSearchTimer.current);
+            if (q.length < 2) { setEvtSearchResults([]); return; }
+            evtSearchTimer.current = setTimeout(async () => {
+              setEvtSearching(true);
+              const { results, error } = await searchPlaces(q);
+              setEvtSearchResults(results);
+              setEvtSearchError(error || (results.length === 0 && q.length >= 2 ? '未找到匹配地点' : ''));
+              setEvtSearching(false);
+            }, 400);
+          };
+          const handleEvtSearchPick = (r: SearchResult) => {
+            setEvtLat(r.lat.toFixed(6)); setEvtLng(r.lng.toFixed(6));
+            setEvtSearchQ(r.name); setEvtSearchResults([]);
+            toast.success(`已定位：${r.name}`);
+          };
+          const handleEvtMapPick = (newLat: number, newLng: number) => {
+            setEvtLat(newLat.toFixed(6)); setEvtLng(newLng.toFixed(6));
+            toast.success(`已选位置：${newLat.toFixed(4)}, ${newLng.toFixed(4)}`);
+          };
+          const evtPickerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 8px rgba(239,68,68,0.5));"><div style="width:24px;height:24px;border-radius:50%;background:#ef4444;border:3px solid #fff;box-shadow:0 0 0 6px rgba(239,68,68,0.25);animation:picker-pulse 1.6s ease-out infinite;"></div></div>',
+            iconSize: [30, 34], iconAnchor: [15, 34],
+          });
+          function EvtMapClickHandler() { useMapEvents({ click(e) { handleEvtMapPick(e.latlng.lat, e.latlng.lng); } }); return null; }
           const formOpen = editingEventId !== null || events.length === 0;
           return (
           <div>
@@ -540,6 +583,53 @@ export function AdminPage() {
                   </div>
                   <div><label className="block text-xs text-stone-400 mb-1">级别设置 <span className="text-red-400">*</span></label><input type="text" value={evtClasses} onChange={e => setEvtClasses(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：63kg, 78kg, 95kg（逗号分隔）" /></div>
                   <div><label className="block text-xs text-stone-400 mb-1">比赛地点 <span className="text-red-400">*</span></label><input type="text" value={evtLocation} onChange={e => setEvtLocation(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：朝阳区SOHO现代城" /></div>
+                  {/* ── 地图选址 ── */}
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 space-y-3">
+                    <button type="button" onClick={() => setEvtShowMap(!evtShowMap)} className="flex items-center gap-2 text-sm text-stone-400 hover:text-white transition-colors">
+                      <Globe className="w-4 h-4" />{evtShowMap ? '收起地图选点' : '📍 展开地图选点（可选，点击地图标注精确位置）'}
+                    </button>
+                    {evtShowMap && (
+                      <>
+                        <div className="relative">
+                          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus-within:border-brand-500/50 transition-all">
+                            <Search className="w-4 h-4 text-stone-500 shrink-0" />
+                            <input type="text" value={evtSearchQ} onChange={e => handleEvtSearch(e.target.value)}
+                              className="flex-1 bg-transparent text-white text-sm placeholder-stone-600 focus:outline-none"
+                              placeholder="搜索地点（如：朝阳公园、SOHO现代城）…" />
+                            {evtSearching && <span className="w-4 h-4 border-2 border-stone-600 border-t-stone-300 rounded-full animate-spin shrink-0" />}
+                          </div>
+                          {evtSearchResults.length > 0 && (
+                            <div className="absolute top-full mt-1 left-0 right-0 z-[2000] bg-stone-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+                              {evtSearchResults.map((r, i) => (
+                                <button key={i} type="button" onClick={() => handleEvtSearchPick(r)}
+                                  className="w-full px-4 py-3 text-left text-sm text-stone-300 hover:bg-white/10 transition-colors border-b border-white/5 last:border-0 flex items-center gap-2">
+                                  <MapPin className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+                                  <span className="truncate">{r.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {evtSearchError && !evtSearching && (
+                            <div className="mt-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">{evtSearchError}</div>
+                          )}
+                        </div>
+                        <div className="h-[260px] rounded-xl overflow-hidden border border-white/10">
+                          <MapContainer center={evtLat && evtLng ? [parseFloat(evtLat), parseFloat(evtLng)] : [39.915, 116.404]} zoom={evtLat && evtLng ? 15 : 11} className="h-full w-full z-0" zoomControl={false} attributionControl={false}>
+                            <TileLayer url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}" subdomains={['1','2','3','4']} />
+                            <EvtMapClickHandler />
+                            {evtLat && evtLng && <Marker position={[parseFloat(evtLat), parseFloat(evtLng)]} icon={evtPickerIcon} />}
+                          </MapContainer>
+                        </div>
+                        <p className="text-xs text-stone-500">💡 在地图上点击即可标记比赛位置，也可通过搜索框查找地点</p>
+                      </>
+                    )}
+                    {(evtLat || evtLng) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-xs text-stone-400 mb-1">纬度</label><input type="text" value={evtLat} onChange={e => setEvtLat(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-mono placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all" placeholder="39.9042" /></div>
+                        <div><label className="block text-xs text-stone-400 mb-1">经度</label><input type="text" value={evtLng} onChange={e => setEvtLng(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-mono placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all" placeholder="116.4074" /></div>
+                      </div>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label className="block text-xs text-stone-400 mb-1">报名费 <span className="text-red-400">*</span></label><input type="text" value={evtFee} onChange={e => setEvtFee(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：50元/人" /></div>
                     <div><label className="block text-xs text-stone-400 mb-1">报名联系人 <span className="text-red-400">*</span></label><input type="text" value={evtContactPerson} onChange={e => setEvtContactPerson(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="如：张教练 微信xxx" /></div>
@@ -547,7 +637,7 @@ export function AdminPage() {
                   <div><label className="block text-xs text-stone-400 mb-1">奖金奖品设置 <span className="text-red-400">*</span></label><textarea value={evtPrizes} onChange={e => setEvtPrizes(e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="如：第一名 ¥1500 + 奖杯&#10;第二名 ¥800 + 奖牌&#10;第三名 ¥500 + 奖牌" /></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label className="block text-xs text-stone-400 mb-1">其他联系方式</label><input type="text" value={evtContact} onChange={e => setEvtContact(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="可选" /></div>
-                    <div><label className="block text-xs text-stone-400 mb-1">赛事描述（可选）</label><input type="text" value={evtDesc} onChange={e => setEvtDesc(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm" placeholder="简短描述..." /></div>
+                    <div><label className="block text-xs text-stone-400 mb-1">赛事描述（可选）</label><textarea value={evtDesc} onChange={e => setEvtDesc(e.target.value)} rows={4} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all text-sm resize-none" placeholder="赛事详细介绍、规则说明、注意事项等..." /></div>
                   </div>
                   <div className="flex gap-3">
                     <button onClick={handleEvtSubmit} disabled={addEvent.isPending || updateEvent.isPending}
@@ -585,6 +675,9 @@ export function AdminPage() {
                 ))}
               </div>
             )}
+            <style>{`
+              @keyframes picker-pulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); } 70% { box-shadow: 0 0 0 16px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+            `}</style>
           </div>
           );
         })()}

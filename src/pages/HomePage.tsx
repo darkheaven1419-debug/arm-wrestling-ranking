@@ -39,6 +39,15 @@ export function HomePage() {
     queryFn: async () => { const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(2); if (error) return []; return (data || []) as Announcement[]; },
     retry: false
   });
+  const { data: classCounts } = useQuery({
+    queryKey: ['class-counts', selectedHand],
+    queryFn: async () => {
+      const { data } = await supabase.from('athletes').select('weight_class').eq('status', 'approved').eq('hand', selectedHand);
+      const counts: Record<string, number> = {};
+      for (const a of (data || [])) { counts[a.weight_class] = (counts[a.weight_class] || 0) + 1; }
+      return counts;
+    },
+  });
   const { data: recentBattles } = useQuery({
     queryKey: ['recent-battles'],
     queryFn: async () => {
@@ -119,6 +128,7 @@ export function HomePage() {
                   <span className="text-5xl mb-3 block group-hover:scale-110 transition-transform duration-300">{wc.icon}</span>
                   <h3 className="text-xl font-extrabold text-white mb-1 group-hover:text-brand-300 transition-colors">{wc.label}</h3>
                   <p className="text-xs text-stone-500">{selectedHand} · 查看排名</p>
+                  <p className="text-xs text-brand-400 mt-1 font-bold">{classCounts?.[wc.value] ?? 0}人</p>
                 </div>
               </Link>
             </motion.div>

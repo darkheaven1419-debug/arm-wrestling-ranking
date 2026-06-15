@@ -9,6 +9,8 @@ import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/lib/supabase';
 import type { ArmEvent } from '@/types';
 
+const evtDetailMarker = L.divIcon({ className: 'custom-marker', html: '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);border:3px solid #fff;box-shadow:0 2px 10px rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;font-size:14px;">📍</div>', iconSize: [28,28], iconAnchor: [14,14] });
+
 function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void }) {
   const [imgIndex, setImgIndex] = useState(0);
   const images = event.poster_urls?.length ? event.poster_urls : (event.poster_url ? [event.poster_url] : []);
@@ -89,6 +91,15 @@ function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void 
               </div>
             )}
           </div>
+
+          {event.latitude && event.longitude && (
+            <div className="mb-6 h-[200px] rounded-xl overflow-hidden border border-white/10">
+              <MapContainer center={[event.latitude, event.longitude]} zoom={15} className="h-full w-full z-0" zoomControl={false} attributionControl={false} dragging={false} scrollWheelZoom={false}>
+                <TileLayer url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}" subdomains={['1','2','3','4']} />
+                <Marker position={[event.latitude, event.longitude]} icon={evtDetailMarker} />
+              </MapContainer>
+            </div>
+          )}
 
           {event.prizes && (
             <div className="mb-6">
