@@ -10,6 +10,8 @@ import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/lib/supabase';
 import { searchPlaces, type SearchResult } from '@/lib/geocode';
 import { compressImage } from '@/lib/image';
+import { LikeButton } from '@/components/LikeButton';
+import { CommentSection } from '@/components/CommentSection';
 import type { TrainingLocation } from '@/types';
 
 const BEIJING_CENTER: [number, number] = [39.915, 116.404];
@@ -563,6 +565,12 @@ export function TrainingPage() {
                           {loc.organization && <p className="text-xs text-stone-500 mb-1">🏛️ {loc.organization}</p>}
                           {loc.contact_person && <p className="text-xs text-stone-500 mb-1 flex items-center gap-1"><User className="w-3 h-3" />{loc.contact_person}{loc.contact_phone && <span className="ml-1.5 text-stone-600">📞 {loc.contact_phone}</span>}</p>}
                           {loc.description && <p className="text-xs text-stone-500 mt-2 line-clamp-2 leading-relaxed"><FileText className="w-3 h-3 inline mr-1 opacity-60" />{loc.description}</p>}
+                          <div className="mt-2 pt-2" onClick={e => e.stopPropagation()}>
+                            <LikeButton targetType="training_location" targetId={loc.id} />
+                          </div>
+                          <div className="mt-1" onClick={e => e.stopPropagation()}>
+                            <CommentSection targetType="training_location" targetId={loc.id} />
+                          </div>
                           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
                             {hasCoords && <NavMenu name={loc.name} lng={loc.longitude!} lat={loc.latitude!} />}
                             {isAdmin && (

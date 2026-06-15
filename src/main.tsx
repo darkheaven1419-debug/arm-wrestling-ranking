@@ -5,7 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { initGA, pageview } from '@/lib/analytics';
+import { initErrorLogger } from '@/lib/errorLogger';
 import App from './App';
+
+initErrorLogger();
 import './index.css';
 
 initGA();
