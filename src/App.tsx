@@ -14,6 +14,7 @@ const ArticleDetailPage = lazy(() => import('@/pages/ArticleDetailPage').then(m 
 const AdminPage = lazy(() => import('@/pages/AdminPage').then(m => ({ default: m.AdminPage })));
 const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const TrainingPlansPage = lazy(() => import('@/pages/TrainingPlansPage').then(m => ({ default: m.TrainingPlansPage })));
 
 function PageLoader() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
         <Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
         <Route path="/profile" element={<Suspense fallback={<PageLoader />}><ProfilePage /></Suspense>} />
+        <Route path="/training-plans" element={<Suspense fallback={<PageLoader />}><TrainingPlansPage /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

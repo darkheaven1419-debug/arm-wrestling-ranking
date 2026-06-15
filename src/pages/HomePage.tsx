@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
 import { computePowerLevel } from '@/lib/powerLevel';
 import { GridSkeleton } from '@/components/Skeleton';
+import { TrendingSection } from '@/components/TrendingSection';
 import type { Announcement, Athlete, ArmEvent, BattleRecord, Hand } from '@/types';
 import { useState } from 'react';
 
@@ -135,6 +136,9 @@ export function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Trending & Newcomers */}
+      <TrendingSection />
 
       {/* Recent Battles */}
       {recentBattles && recentBattles.length > 0 && (

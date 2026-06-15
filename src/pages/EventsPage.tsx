@@ -8,6 +8,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '@/lib/supabase';
 import type { ArmEvent } from '@/types';
+import { LikeButton } from '@/components/LikeButton';
+import { CommentSection } from '@/components/CommentSection';
 
 const evtDetailMarker = L.divIcon({ className: 'custom-marker', html: '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);border:3px solid #fff;box-shadow:0 2px 10px rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;font-size:14px;">📍</div>', iconSize: [28,28], iconAnchor: [14,14] });
 
@@ -118,6 +120,9 @@ function EventDetail({ event, onClose }: { event: ArmEvent; onClose: () => void 
           {event.contact_info && (
             <p className="text-xs text-stone-500 pt-4 border-t border-white/5">📞 {event.contact_info}</p>
           )}
+
+          <LikeButton targetType="event" targetId={event.id} />
+          <CommentSection targetType="event" targetId={event.id} />
         </div>
       </motion.div>
     </motion.div>

@@ -106,3 +106,49 @@ export interface Announcement {
   content: string | null;
   created_at: string;
 }
+
+export interface Comment {
+  id: number;
+  target_type: 'event' | 'training_location';
+  target_id: number;
+  user_id: string | null;
+  content: string;
+  created_at: string;
+  user_nickname?: string;
+  user_avatar?: string;
+}
+
+export interface Like {
+  id: number;
+  target_type: 'event' | 'training_location';
+  target_id: number;
+  user_id: string;
+  created_at: string;
+}
+
+export interface AthleteView {
+  id: number;
+  athlete_id: number;
+  viewer_ip?: string;
+  user_id?: string;
+  created_at: string;
+}
+
+export interface TrainingPlan {
+  id: string;
+  title: string;
+  description: string;
+  weightClass: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  duration: string;
+  exercises: TrainingExercise[];
+  imageUrl?: string;
+  tags: string[];
+}
+
+export interface TrainingExercise {
+  name: string;
+  sets: string;
+  reps: string;
+  notes?: string;
+}
