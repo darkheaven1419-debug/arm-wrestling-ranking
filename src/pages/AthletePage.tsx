@@ -10,6 +10,7 @@ import { computePowerLevel, getPowerBadge } from '@/lib/powerLevel';
 import { useAthleteView } from '@/lib/useAthleteView';
 import { useDocumentTitle } from '@/lib/useDocumentTitle';
 import { AthleteEditModal } from '@/components/AthleteEditModal';
+import { TrainingCheckIn } from '@/components/TrainingCheckIn';
 import type { Athlete, BattleRecord } from '@/types';
 
 export function AthletePage() {
@@ -156,6 +157,7 @@ export function AthletePage() {
           {athlete.achievements && (<div className="mb-4"><h3 className="text-sm font-semibold text-stone-400 mb-2 flex items-center gap-2"><Medal className="w-4 h-4 text-amber-400" />比赛成绩</h3><p className="text-white text-sm leading-relaxed whitespace-pre-line">{athlete.achievements}</p></div>)}
           {athlete.bio && (<div className="mb-4"><h3 className="text-sm font-semibold text-stone-400 mb-2">个人简介</h3><p className="text-white text-sm leading-relaxed whitespace-pre-line">{athlete.bio}</p></div>)}
           {athlete.training_spot && (<div className="glass rounded-2xl p-4 mb-4"><p className="text-sm text-stone-400">🏠 常去集训点：<span className="text-white">{athlete.training_spot}</span></p></div>)}
+          <TrainingCheckIn athleteUserId={athlete.user_id} />
 
           {/* Videos */}
           {Array.isArray((athlete as any).video_urls) && (athlete as any).video_urls.length > 0 && (

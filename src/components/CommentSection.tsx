@@ -26,7 +26,7 @@ export function CommentSection({ targetType, targetId }: Props) {
   const { data: comments, isLoading } = useQuery({
     queryKey: ['comments', targetType, targetId],
     queryFn: async () => {
-      const { data } = await supabase.from('comments').select('*').eq('target_type', targetType).eq('target_id', targetId).order('created_at', { ascending: false }).limit(50);
+      const { data } = await supabase.from('comments').select('*').is('deleted_at', null).eq('target_type', targetType).eq('target_id', targetId).order('created_at', { ascending: false }).limit(50);
       return (data || []) as any[];
     },
   });
@@ -43,7 +43,7 @@ export function CommentSection({ targetType, targetId }: Props) {
 
   const del = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from('comments').delete().eq('id', id);
+      const { error } = await supabase.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
     },
     onMutate: async (id: number) => {
@@ -57,7 +57,6 @@ export function CommentSection({ targetType, targetId }: Props) {
       if (ctx?.prev) qc.setQueryData(['comments', targetType, targetId], ctx.prev);
       toast.error('删除失败，请重试');
     },
-    onSettled: () => { qc.invalidateQueries({ queryKey: ['comments', targetType, targetId] }); },
   });
 
   const displayed = showAll ? (comments || []) : (comments || []).slice(0, 5);
