@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, User, MapPin, Scale, Trophy, Swords, Camera, Edit3, TrendingUp, Medal } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Scale, Trophy, Swords, Camera, Edit3, TrendingUp, Medal, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
-import { computePowerLevel, getPowerBadge } from '@/lib/powerLevel';
 import { useAthleteView } from '@/lib/useAthleteView';
 import { useDocumentTitle } from '@/lib/useDocumentTitle';
 import { AthleteEditModal } from '@/components/AthleteEditModal';
@@ -73,16 +72,30 @@ export function AthletePage() {
 
   const wc = WEIGHT_CLASSES.find(w => w.value === athlete.weight_class);
   const rank = groupRank?.position ?? null;
-  const rankScore = athlete.hand === '左手' ? athlete.rank_score_left : athlete.rank_score;
-  const powerLevel = athlete.is_unknown_power ? null : (rank ? computePowerLevel(rank) : ((rankScore ?? 0) > 0 ? computePowerLevel(rankScore!) : 0));
-  const badge = powerLevel ? getPowerBadge(powerLevel) : null;
   const isOwner = currentUserId && athlete.user_id === currentUserId;
   useDocumentTitle(athlete ? `${athlete.name}${athlete.codename ? '「'+athlete.codename+'」' : ''}·${athlete.weight_class}` : null);
 
+  const eloScore = (athlete as any).elo_score ?? 1000;
+  const eloBadge = eloScore >= 1800 ? { tier: '大师', color: 'text-red-400', bg: 'bg-red-500/15' } : eloScore >= 1600 ? { tier: '铂金', color: 'text-cyan-400', bg: 'bg-cyan-500/15' } : eloScore >= 1400 ? { tier: '黄金', color: 'text-amber-400', bg: 'bg-amber-500/15' } : eloScore >= 1200 ? { tier: '白银', color: 'text-stone-300', bg: 'bg-stone-500/15' } : eloScore >= 1000 ? { tier: '青铜', color: 'text-orange-400', bg: 'bg-orange-500/15' } : { tier: '新手', color: 'text-stone-500', bg: 'bg-white/5' };
+
+  const { data: eloRanks } = useQuery({
+    queryKey: ['elo-ranks', athlete.id],
+    queryFn: async () => {
+      const [{ data: cityRank }, { data: weightRank }] = await Promise.all([
+        supabase.from('athletes').select('id').eq('status','approved').eq('city',athlete.city).gt('elo_score',eloScore),
+        supabase.from('athletes').select('id').eq('status','approved').eq('weight_class',athlete.weight_class).gt('elo_score',eloScore),
+      ]);
+      return { city: (cityRank?.length||0)+1, weight: (weightRank?.length||0)+1 };
+    },
+    enabled: !!athlete,
+  });
+
   const battles = allBattles || [];
-  const wins = battles.filter(b => b.winner_id === athlete.id).length;
-  const losses = battles.filter(b => b.loser_id === athlete.id).length;
-  const total = battles.length;
+  const matchWins = (athlete as any).total_wins ?? battles.filter(b => b.winner_id === athlete.id).length;
+  const matchLosses = (athlete as any).total_losses ?? battles.filter(b => b.loser_id === athlete.id).length;
+  const matchTotal = (athlete as any).total_matches ?? battles.length;
+  const wins = matchWins; const losses = matchLosses; const total = matchTotal;
+  const streak = (athlete as any).current_streak ?? 0;
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
   const displayedBattles = showAllBattles ? battles : battles.slice(0, 5);
 
@@ -110,11 +123,25 @@ export function AthletePage() {
             </div>
           </div>
 
+          {/* ELO Badge */}
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <div className={`${eloBadge.bg} rounded-2xl px-4 py-2 flex items-center gap-2`}>
+              <Zap className={`w-5 h-5 ${eloBadge.color}`} />
+              <div><div className={`text-lg font-black ${eloBadge.color}`}>{eloBadge.tier}</div><div className="text-[10px] text-stone-500">ELO {eloScore}</div></div>
+            </div>
+            {eloRanks && (
+              <div className="flex gap-2 text-xs text-stone-500">
+                <span>🏙️ 全市 #{eloRanks.city}</span>
+                <span>🏋️ {athlete.weight_class} #{eloRanks.weight}</span>
+              </div>
+            )}
+          </div>
+
           {/* Stats Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
             <div className="glass rounded-2xl p-3 text-center">
-              <div className="text-2xl font-black text-brand-400">{powerLevel !== null ? powerLevel : '?'}</div>
-              <div className="text-[10px] text-stone-500">战力值{badge && <span className="ml-1 text-amber-400">{badge.tier}</span>}</div>
+              <div className="text-2xl font-black text-brand-400">{eloScore}</div>
+              <div className="text-[10px] text-stone-500">ELO · {eloBadge.tier}{streak !== 0 && <span className="ml-1 text-emerald-400">{streak > 0 ? `🔥${streak}连胜` : `❄️${Math.abs(streak)}连败`}</span>}</div>
             </div>
             <div className="glass rounded-2xl p-3 text-center">
               <div className="text-2xl font-black text-white">#{rank ?? '--'}</div>

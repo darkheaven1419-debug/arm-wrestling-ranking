@@ -9,6 +9,7 @@ import type { Athlete, ArmEvent } from '@/types';
 import { RankingTab } from '@/components/admin/RankingTab';
 import { AdminsTab } from '@/components/admin/AdminsTab';
 import { ContentTab } from '@/components/admin/ContentTab';
+import { MatchTab } from '@/components/admin/MatchTab';
 import type { AdminUser } from '@/components/admin/AdminsTab';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -18,7 +19,7 @@ interface AdminApp { id: number; user_id: string; status: string; created_at: st
 
 export function AdminPage() {
   const [session, setSession] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<'review' | 'ranking' | 'admins' | 'applications' | 'announcements' | 'events' | 'articles' | 'content'>('review');
+  const [activeTab, setActiveTab] = useState<'review' | 'ranking' | 'admins' | 'applications' | 'announcements' | 'events' | 'articles' | 'content' | 'matches'>('review');
   const [annTitle, setAnnTitle] = useState(''); const [annContent, setAnnContent] = useState('');
   const [evtTitle, setEvtTitle] = useState(''); const [evtDate, setEvtDate] = useState('');
   const [evtLocation, setEvtLocation] = useState(''); const [evtDesc, setEvtDesc] = useState('');
@@ -359,6 +360,7 @@ export function AdminPage() {
               <button onClick={() => setActiveTab('articles')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'articles' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>文章管理</button>
               <button onClick={() => setActiveTab('admins')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'admins' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>管理管理员</button>
               <button onClick={() => setActiveTab('content')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'content' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>📊 内容管理</button>
+              <button onClick={() => setActiveTab('matches')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'matches' ? 'bg-white/10 text-white' : 'text-stone-500 hover:text-stone-300'}`}>⚔️ 比赛录入</button>
             </>
           )}
         </div>
@@ -701,6 +703,7 @@ export function AdminPage() {
         )}
 
         {activeTab === 'content' && isSuperAdmin && <ContentTab />}
+        {activeTab === 'matches' && isSuperAdmin && <MatchTab />}
 
         {activeTab === 'admins' && isSuperAdmin && <AdminsTab
           addAdminByEmail={addAdminByEmail} newAdminEmail={newAdminEmail} setNewAdminEmail={setNewAdminEmail}
