@@ -247,7 +247,9 @@ export function MapPage() {
 
             <div className="space-y-4">
               {[{ key: 'training', label: '集训点', count: totalSpots, icon: Dumbbell, color: 'text-amber-400', show: showTraining, setShow: setShowTraining, data: spots||[], type: 's' },
-                { key: 'events', label: '赛事&活动', count: totalEvents, icon: Calendar, color: 'text-red-400', show: showEvents, setShow: setShowEvents, data: events||[], type: 'e' }].map(section => (
+                { key: 'events', label: '赛事&活动', count: totalEvents, icon: Calendar, color: 'text-red-400', show: showEvents, setShow: setShowEvents, data: events||[], type: 'e' }]
+                .filter(s => filter === '全部' || (filter === '集训' && s.key === 'training') || (filter === '赛事&活动' && s.key === 'events'))
+                .map(section => (
                 <div key={section.key}>
                   <button onClick={() => section.setShow(!section.show)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-stone-400 hover:text-white text-sm w-full transition-all">
                     <section.icon className={`w-4 h-4 ${section.color}`}/>{section.label} ({section.count}){section.show ? <ChevronUp className="w-4 h-4 ml-auto"/> : <ChevronDown className="w-4 h-4 ml-auto"/>}
