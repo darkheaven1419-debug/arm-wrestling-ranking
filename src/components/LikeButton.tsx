@@ -12,7 +12,8 @@ export function LikeButton({ targetType, targetId }: Props) {
   useEffect(() => { supabase.auth.getSession().then(({ data: { session } }) => { if (session) setUserId(session.user.id); }); }, []);
 
   const { data } = useQuery({
-    queryKey: ['likes', targetType, targetId],
+    queryKey: ['likes', targetType, targetId, userId],
+    enabled: !!userId || userId === null,
     queryFn: async () => {
       const [{ count }, { data: my }] = await Promise.all([
         supabase.from('likes').select('*', { count: 'exact', head: true }).eq('target_type', targetType).eq('target_id', targetId),
