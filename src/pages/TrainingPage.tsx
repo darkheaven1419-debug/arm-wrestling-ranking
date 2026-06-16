@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MapPin, Plus, X, User, FileText, Upload, Navigation, ChevronDown, ChevronUp, List, Dumbbell, Search, Target } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, X, User, FileText, Upload, Navigation, ChevronDown, ChevronUp, Dumbbell, Search, Target, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -12,7 +12,7 @@ import { searchPlaces, type SearchResult } from '@/lib/geocode';
 import { compressImage } from '@/lib/image';
 import { LikeButton } from '@/components/LikeButton';
 import { CommentSection } from '@/components/CommentSection';
-import type { TrainingLocation } from '@/types';
+import type { TrainingLocation, ArmEvent } from '@/types';
 
 const BEIJING_CENTER: [number, number] = [39.915, 116.404];
 const DEFAULT_ZOOM = 12;
@@ -196,6 +196,7 @@ export function TrainingPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeSpot, setActiveSpot] = useState<TrainingLocation | null>(null);
   const [showList, setShowList] = useState(true);
+  const [listTab, setListTab] = useState<'training' | 'events'>('training');
 
   // 选址相关状态
   const [pickerPos, setPickerPos] = useState<[number, number] | null>(null);
@@ -288,6 +289,11 @@ export function TrainingPage() {
     },
   });
 
+  const { data: events } = useQuery({
+    queryKey: ['training-page-events'],
+    queryFn: async () => { const { data } = await supabase.from('events').select('*').order('event_date', { ascending: true }); return (data || []) as ArmEvent[]; },
+  });
+
   const saveLocation = useMutation({
     mutationFn: async () => {
       setIsUploading(true);
@@ -337,7 +343,9 @@ export function TrainingPage() {
 
   const spotsWithCoords = (locations || []).filter(l => l.latitude && l.longitude);
   const spotsWithoutCoords = (locations || []).filter(l => !l.latitude || !l.longitude);
+  const eventsOnMap = (events || []).filter(e => e.latitude && e.longitude);
   const pickerHasCoords = pickerPos !== null;
+  const evtMarkerIcon = L.divIcon({ className: 'custom-marker', html: '<div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#ef4444,#dc2626);border:2px solid #fff;box-shadow:0 2px 10px rgba(239,68,68,0.35);display:flex;align-items:center;justify-content:center;font-size:12px;">📅</div>', iconSize: [26,26], iconAnchor: [13,13], popupAnchor: [0,-13] });
   const iCls = "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-stone-600 focus:outline-none focus:border-brand-500/50 transition-all";
 
   return (
@@ -347,8 +355,8 @@ export function TrainingPage() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-300 transition-colors mb-1"><ArrowLeft className="w-3.5 h-3.5" />返回首页</Link>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2"><MapPin className="w-6 h-6 text-brand-400" />北京<span className="text-brand-400">集训地图</span></h1>
-            <p className="text-xs text-stone-500 mt-0.5">{spotsWithCoords.length} 个点位 · 点击标记查看详情</p>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2"><MapPin className="w-6 h-6 text-brand-400" />北京<span className="text-brand-400">腕力地图</span></h1>
+            <p className="text-xs text-stone-500 mt-0.5">{spotsWithCoords.length} 集训点 · {eventsOnMap.length} 赛事 · 点击标记查看详情</p>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setActiveSpot(null)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-stone-400 hover:text-white hover:bg-white/10 transition-all text-sm"><Navigation className="w-3.5 h-3.5" />重置地图</button>
@@ -499,6 +507,11 @@ export function TrainingPage() {
               {spotsWithCoords.map((loc, i) => (
                 <SpotMarker key={loc.id} loc={loc} index={i} isActive={activeSpot?.id === loc.id} onClick={() => setActiveSpot(loc)} />
               ))}
+              {eventsOnMap.map(evt => (
+                <Marker key={`e${evt.id}`} position={[evt.latitude!, evt.longitude!]} icon={evtMarkerIcon}>
+                  <Popup maxWidth={220}><div className="min-w-[140px]"><h3 className="font-bold text-sm text-gray-900">{evt.title}</h3><p className="text-xs text-gray-500 mt-1">📅 {evt.event_date}</p>{evt.location && <p className="text-xs text-gray-500">📍 {evt.location}</p>}</div></Popup>
+                </Marker>
+              ))}
               {/* 选址标记 */}
               {pickerHasCoords && <Marker position={pickerPos!} icon={createPickerIcon()} zIndexOffset={1000} />}
             </MapContainer>
@@ -524,15 +537,25 @@ export function TrainingPage() {
         </motion.div>
       </div>
 
-      {/* ═══ 列表 ═══ */}
+      {/* ═══ 列表：集训 / 赛事&活动 标签切换 ═══ */}
       <div className="max-w-6xl mx-auto px-4">
-        <button onClick={() => setShowList(!showList)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-stone-400 hover:text-white hover:bg-white/10 transition-all text-sm mb-4">
-          <List className="w-4 h-4" />全部集训点 ({locations?.length || 0}){showList ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => { setListTab('training'); setShowList(true); }}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${listTab === 'training' ? 'bg-white/10 text-white' : 'bg-white/5 text-stone-500 hover:text-stone-300'}`}>
+            <Dumbbell className="w-4 h-4 inline mr-1.5" />全部集训点 ({locations?.length || 0})
+          </button>
+          <button onClick={() => { setListTab('events'); setShowList(true); }}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${listTab === 'events' ? 'bg-white/10 text-white' : 'bg-white/5 text-stone-500 hover:text-stone-300'}`}>
+            <Calendar className="w-4 h-4 inline mr-1.5" />赛事 & 活动 ({(events || []).length})
+          </button>
+          <button onClick={() => setShowList(!showList)} className="ml-auto px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-stone-400 hover:text-white text-sm transition-all">
+            {showList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
         <AnimatePresence>
           {showList && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-              {locations && locations.length > 0 ? (
+              {listTab === 'training' && (locations && locations.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {locations.map((loc, i) => {
                     const spotIdx = spotsWithCoords.findIndex(s => s.id === loc.id);
@@ -587,7 +610,34 @@ export function TrainingPage() {
                 </div>
               ) : (
                 <div className="text-center py-16 glass rounded-3xl"><Dumbbell className="w-16 h-16 text-stone-800 mx-auto mb-4" /><h2 className="text-lg font-semibold text-stone-400 mb-1">暂无集训地点</h2><p className="text-stone-600 text-sm">管理员添加后将显示在这里</p></div>
-              )}
+              ))}
+              {listTab === 'events' && ((events || []).length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(events || []).map((evt, i) => (
+                    <motion.div key={evt.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      className="glass rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] group">
+                      {evt.poster_url ? <div className="relative h-32 overflow-hidden"><img loading="lazy" src={evt.poster_url} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /><div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent" /></div> : null}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-base font-bold text-white truncate flex-1">{evt.title}</h3>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ml-2 ${new Date(evt.event_date) >= new Date() ? 'bg-emerald-500/20 text-emerald-400' : 'bg-stone-500/20 text-stone-400'}`}>{new Date(evt.event_date) >= new Date() ? '即将' : '结束'}</span>
+                        </div>
+                        {evt.location && <p className="text-xs text-stone-400 mb-1">📍 {evt.location}</p>}
+                        <p className="text-xs text-stone-500 mb-1">📅 {new Date(evt.event_date).toLocaleDateString('zh-CN')}</p>
+                        {evt.weight_classes && <p className="text-xs text-stone-500 mb-2">{evt.weight_classes.join(' · ')}</p>}
+                        {evt.registration_fee && <p className="text-xs text-amber-400 mb-1">💰 {evt.registration_fee}</p>}
+                        {evt.contact_person && <p className="text-xs text-stone-500 mb-2">👤 {evt.contact_person}</p>}
+                        <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                          <div onClick={e => e.stopPropagation()}><LikeButton targetType="event" targetId={evt.id} /></div>
+                        </div>
+                        <div className="mt-1"><CommentSection targetType="event" targetId={evt.id} /></div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 glass rounded-3xl"><Calendar className="w-16 h-16 text-stone-800 mx-auto mb-4" /><h2 className="text-lg font-semibold text-stone-400 mb-1">暂无赛事活动</h2><p className="text-stone-600 text-sm">管理员添加后将显示在这里</p></div>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>
