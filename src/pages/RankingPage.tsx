@@ -163,12 +163,6 @@ export function RankingPage() {
           </motion.div>
           );
         })()}
-        <div className="text-center mt-8 flex gap-3 justify-center flex-wrap">
-          <Link to={`/submit?hand=${hand}&class=${weightClass}`}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all">
-            提交你的运动员信息
-          </Link>
-        </div>
       </div>
     </div>
   );

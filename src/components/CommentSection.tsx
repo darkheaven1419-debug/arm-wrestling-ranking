@@ -42,14 +42,21 @@ export function CommentSection({ targetType, targetId }: Props) {
   });
 
   const del = useMutation({
-    mutationFn: async (id: number) => { await supabase.from('comments').delete().eq('id', id); },
+    mutationFn: async (id: number) => {
+      const { error } = await supabase.from('comments').delete().eq('id', id);
+      if (error) throw error;
+    },
     onMutate: async (id: number) => {
       await qc.cancelQueries({ queryKey: ['comments', targetType, targetId] });
       const prev = qc.getQueryData(['comments', targetType, targetId]);
       qc.setQueryData(['comments', targetType, targetId], (old: any) => (old || []).filter((c: any) => c.id !== id));
       return { prev };
     },
-    onError: (_e: any, _id: number, ctx: any) => { if (ctx?.prev) qc.setQueryData(['comments', targetType, targetId], ctx.prev); toast.error('删除失败'); },
+    onSuccess: () => { toast.success('已删除'); },
+    onError: (_e: any, _id: number, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(['comments', targetType, targetId], ctx.prev);
+      toast.error('删除失败，请重试');
+    },
     onSettled: () => { qc.invalidateQueries({ queryKey: ['comments', targetType, targetId] }); },
   });
 

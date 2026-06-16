@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Dumbbell, Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell, Calendar, Activity } from 'lucide-react';
+import { Trophy, Users, ArrowRight, TrendingUp, MapPin, Swords, Bell, Calendar, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { WEIGHT_CLASSES } from '@/lib/constants';
@@ -231,11 +231,6 @@ export function HomePage() {
         </section>
       )}
 
-      <motion.div className="text-center pb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-        <Link to={`/submit?hand=${selectedHand}`} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 text-stone-400 text-sm hover:bg-white/10 hover:text-white transition-all duration-300">
-          <Dumbbell className="w-4 h-4" /> 提交你的运动员信息 <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </motion.div>
     </div>
   );
 }
