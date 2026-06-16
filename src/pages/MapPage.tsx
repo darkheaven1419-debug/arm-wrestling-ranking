@@ -12,6 +12,7 @@ import type { TrainingLocation, ArmEvent } from '@/types';
 import { NavMenu } from '@/components/map/NavMenu';
 import { SpotMarker } from '@/components/map/SpotMarker';
 import { LikeButton } from '@/components/LikeButton';
+import { CommentSection } from '@/components/CommentSection';
 
 const BEIJING: [number, number] = [39.915, 116.404];
 const GAODE = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
@@ -264,28 +265,32 @@ export function MapPage() {
                             const isTraining = section.type === 's';
                             return (
                               <div key={id} onClick={() => { if (hasPos) { setFilter(isTraining?'集训':'赛事&活动'); setActiveId(id); window.scrollTo({top:200,behavior:'smooth'}); } }}
-                                className={`glass rounded-xl p-4 cursor-pointer hover:scale-[1.01] transition-all ${activeId===id?'ring-2 '+(isTraining?'ring-brand-500/50':'ring-red-500/50'):''}`}>
-                                <div className="flex items-center gap-2 mb-1.5">
-                                  <section.icon className={`w-4 h-4 ${section.color} shrink-0`}/>
-                                  <h3 className="text-sm font-bold text-white truncate flex-1">{isTraining?item.name:item.title}</h3>
-                                  {!hasPos && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 shrink-0">无坐标</span>}
-                                  {isTraining && item.table_count != null && <span className="text-xs text-stone-500">🏓{item.table_count}桌</span>}
-                                  {!isTraining && <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${new Date(item.event_date)>=new Date()?'bg-emerald-500/20 text-emerald-400':'bg-stone-500/20 text-stone-400'}`}>{new Date(item.event_date)>=new Date()?'即将':'结束'}</span>}
-                                </div>
-                                <p className="text-xs text-stone-400 truncate">📍 {isTraining?(item.address||'未填地址'):(item.location||'未填地址')}</p>
-                                {isTraining && item.schedule && <p className="text-xs text-stone-500">🕐 {item.schedule}</p>}
-                                {isTraining && item.organization && <p className="text-xs text-stone-500">🏛️ {item.organization}</p>}
-                                {!isTraining && <p className="text-xs text-stone-500">📅 {item.event_date}</p>}
-                                {isTraining && hasPos && <NavMenu name={item.name} lng={item.longitude!} lat={item.latitude!}/>}
-                                <div onClick={e => e.stopPropagation()} className="mt-2">
-                                  <LikeButton targetType={isTraining ? 'training_location' : 'event'} targetId={item.id} />
-                                </div>
-                                {isAdmin && (
-                                  <div className="flex gap-2 mt-2 pt-2 border-t border-white/5" onClick={e => e.stopPropagation()}>
-                                    <Link to={isTraining?'/training':'/admin?tab=events'} className="text-xs text-blue-400 hover:text-blue-300"><Pencil className="w-3 h-3 inline"/> 编辑</Link>
-                                    <button onClick={() => { if (confirm(`确定删除？`)) isTraining ? deleteSpot.mutate(item.id) : deleteEvent.mutate(item.id); }} className="text-xs text-red-400 hover:text-red-300"><X className="w-3 h-3 inline"/> 删除</button>
+                                className={`glass rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.01] transition-all ${activeId===id?'ring-2 '+(isTraining?'ring-brand-500/50':'ring-red-500/50'):''}`}>
+                                {/* Cover image */}
+                                {isTraining && item.image_url && <div className="relative h-32 overflow-hidden"><img loading="lazy" src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /></div>}
+                                {!isTraining && (item.poster_url || (item.poster_urls?.length > 0)) && <div className="relative h-32 overflow-hidden"><img loading="lazy" src={item.poster_url || item.poster_urls[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /></div>}
+                                <div className="p-4">
+                                  <div className="flex items-center gap-2 mb-1.5">
+                                    <section.icon className={`w-4 h-4 ${section.color} shrink-0`}/>
+                                    <h3 className="text-sm font-bold text-white truncate flex-1">{isTraining?item.name:item.title}</h3>
+                                    {!hasPos && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 shrink-0">无坐标</span>}
+                                    {isTraining && item.table_count != null && <span className="text-xs text-stone-500">🏓{item.table_count}桌</span>}
+                                    {!isTraining && <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${new Date(item.event_date)>=new Date()?'bg-emerald-500/20 text-emerald-400':'bg-stone-500/20 text-stone-400'}`}>{new Date(item.event_date)>=new Date()?'即将':'结束'}</span>}
                                   </div>
-                                )}
+                                  <p className="text-xs text-stone-400 truncate">📍 {isTraining?(item.address||'未填地址'):(item.location||'未填地址')}</p>
+                                  {isTraining && item.schedule && <p className="text-xs text-stone-500">🕐 {item.schedule}</p>}
+                                  {isTraining && item.organization && <p className="text-xs text-stone-500">🏛️ {item.organization}</p>}
+                                  {!isTraining && <p className="text-xs text-stone-500">📅 {item.event_date}</p>}
+                                  {isTraining && hasPos && <NavMenu name={item.name} lng={item.longitude!} lat={item.latitude!}/>}
+                                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/5" onClick={e => e.stopPropagation()}>
+                                    <LikeButton targetType={isTraining ? 'training_location' : 'event'} targetId={item.id} />
+                                    {isAdmin && (<>
+                                      <Link to={isTraining?'/training':'/admin?tab=events'} className="text-xs text-blue-400 hover:text-blue-300 ml-auto"><Pencil className="w-3 h-3 inline"/></Link>
+                                      <button onClick={() => { if (confirm(`确定删除？`)) isTraining ? deleteSpot.mutate(item.id) : deleteEvent.mutate(item.id); }} className="text-xs text-red-400 hover:text-red-300"><X className="w-3 h-3 inline"/></button>
+                                    </>)}
+                                  </div>
+                                  <div className="mt-1" onClick={e => e.stopPropagation()}><CommentSection targetType={isTraining ? 'training_location' : 'event'} targetId={item.id} /></div>
+                                </div>
                               </div>
                             );
                           })}
