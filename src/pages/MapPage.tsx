@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import type { TrainingLocation, ArmEvent } from '@/types';
 import { NavMenu } from '@/components/map/NavMenu';
 import { SpotMarker } from '@/components/map/SpotMarker';
+import { LikeButton } from '@/components/LikeButton';
 
 const BEIJING: [number, number] = [39.915, 116.404];
 const GAODE = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
@@ -274,6 +275,9 @@ export function MapPage() {
                                 {isTraining && item.organization && <p className="text-xs text-stone-500">🏛️ {item.organization}</p>}
                                 {!isTraining && <p className="text-xs text-stone-500">📅 {item.event_date}</p>}
                                 {isTraining && hasPos && <NavMenu name={item.name} lng={item.longitude!} lat={item.latitude!}/>}
+                                <div onClick={e => e.stopPropagation()} className="mt-2">
+                                  <LikeButton targetType={isTraining ? 'training_location' : 'event'} targetId={item.id} />
+                                </div>
                                 {isAdmin && (
                                   <div className="flex gap-2 mt-2 pt-2 border-t border-white/5" onClick={e => e.stopPropagation()}>
                                     <Link to={isTraining?'/training':'/admin?tab=events'} className="text-xs text-blue-400 hover:text-blue-300"><Pencil className="w-3 h-3 inline"/> 编辑</Link>
